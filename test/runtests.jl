@@ -1,6 +1,8 @@
-using SimpleNNs
-using Test
+using TestItemRunner
+using TestItems
 
-@testset "SimpleNNs.jl" begin
-    # Write your tests here.
+@run_package_tests
+
+@testitem "Basic Test" begin
+    @test 1+1 == 2
 end
