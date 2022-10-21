@@ -17,6 +17,7 @@ parameter_indices(::AbstractLayer) = unimplemented()
 
 abstract type AbstractParameterisedLayer <: AbstractLayer end
 _inner_layer(::AbstractParameterisedLayer) = unimplemented()
+parameters(::AbstractParameterisedLayer) = unimplemented()
 # Forward all definitions to the "layer" property of the abstract layer
 datatype(layer::AbstractParameterisedLayer) = datatype(_inner_layer(layer))
 outputcount(layer::AbstractParameterisedLayer) = outputcount(_inner_layer(layer))
@@ -75,15 +76,16 @@ function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int
 end
 
 # Model
-struct Model{T,Q}
+struct Model{T<:AbstractArray,Q<:AbstractParameterisedLayer}
     parameters::T
-    layers::Q
+    layers::AbstractArray{Q}
 end
 struct ParameterisedLayer{T, Q} <: AbstractParameterisedLayer
     layer::T
     parameter_views::Q
 end
 _inner_layer(layer::ParameterisedLayer) = layer.layer
+parameters(layer::ParameterisedLayer) = layer.parameter_views
 
 # Activation functions
 sigmoid(x) = inv(one(typeof(x) + exp(-x)))
@@ -107,7 +109,8 @@ end
 
 parameters(model::Model) = model.parameters
 
-function chain(layers...)
+
+function chain(layers...)::Model
     (input_layer, network_layers) = Iterators.peel(layers)
     if !(input_layer isa Static)
         @error "The first layer should always be a static layer, specifying the input size."
@@ -120,10 +123,11 @@ function chain(layers...)
     total_parameter_size = 0
     # Create a mapping from layers to parameters
     layer_indices = Vector([parameter_indices(input_layer, total_parameter_size)])
-    
+    reconstructed_layers = AbstractLayer[input_layer]
     for layer in network_layers
         # Reconstruct the layer, adding in the previous layer size
         layer = reconstruct_layer(layer, previous_layer_size)
+        push!(reconstructed_layers, layer)
 
         # Check consistency of datatypes
         current_datatype = datatype(layer)
@@ -152,7 +156,7 @@ function chain(layers...)
     parameter_array = zeros(overall_datatype, total_parameter_size)
     parameter_views = _map_views(layer_indices, parameter_array)
     
-    model_layers = [ParameterisedLayer(l, v) for (l,v) in zip(layers, parameter_views)]
+    model_layers = [ParameterisedLayer(l, v) for (l,v) in zip(reconstructed_layers, parameter_views)]
     return Model(parameter_array, model_layers)
 end
 
@@ -161,5 +165,6 @@ end
 export Static, Dense, chain, sigmoid, relu, parameters
 
 include("preallocation.jl")
+include("forward.jl")
 
 end
