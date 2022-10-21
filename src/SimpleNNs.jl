@@ -97,6 +97,8 @@ function _map_views(indices::AbstractArray{T}, array::AbstractArray) where {Q<:U
     return (x->_map_views(x, array)).(indices)
 end
 
+parameters(model::Model) = model.parameters
+
 function chain(layers...)
     (input_layer, network_layers) = Iterators.peel(layers)
     if !(input_layer isa Static)
@@ -148,6 +150,6 @@ end
 
 
 # API
-export Static, Dense, chain, sigmoid, relu
+export Static, Dense, chain, sigmoid, relu, parameters
 
 end
