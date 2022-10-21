@@ -3,6 +3,7 @@ using Logging
 
 # Utility
 unimplemented() = error("Unimplemented function")
+unimplemented(msg) = error("Unimplemented function: $msg")
 
 flatten_size(size::Tuple) = reduce(*, size)
 flatten_size(size::Number) = size
@@ -87,6 +88,19 @@ end
 _inner_layer(layer::ParameterisedLayer) = layer.layer
 parameters(layer::ParameterisedLayer) = layer.parameter_views
 
+function weights(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
+    weights = first(parameters(layer))
+    return reshape(weights, layer.layer.outputs, layer.layer.inputs)
+end
+function biases(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
+    biases = last(parameters(layer))
+    return biases
+end
+
+
+
+
+
 # Activation functions
 sigmoid(x) = inv(one(typeof(x) + exp(-x)))
 relu(x) = ifelse(x>=zero(typeof(x)), x, zero(typeof(x)))
@@ -166,5 +180,6 @@ export Static, Dense, chain, sigmoid, relu, parameters
 
 include("preallocation.jl")
 include("forward.jl")
+include("backprop.jl")
 
 end
