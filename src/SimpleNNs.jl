@@ -16,6 +16,13 @@ num_parameters(layer::AbstractLayer) = flatten_size(parameter_array_size(layer))
 parameter_indices(::AbstractLayer) = unimplemented()
 
 abstract type AbstractParameterisedLayer <: AbstractLayer end
+_inner_layer(::AbstractParameterisedLayer) = unimplemented()
+# Forward all definitions to the "layer" property of the abstract layer
+datatype(layer::AbstractParameterisedLayer) = datatype(_inner_layer(layer))
+outputcount(layer::AbstractParameterisedLayer) = outputcount(_inner_layer(layer))
+parameter_array_size(layer::AbstractParameterisedLayer) = parameter_array_size(_inner_layer(layer))
+num_parameters(layer::AbstractParameterisedLayer) = num_parameters(_inner_layer(layer))
+parameter_indices(layer::AbstractParameterisedLayer) = parameter_indices(_inner_layer(layer))
 
 # Layer types
 Base.@kwdef struct Static{DT, S} <: AbstractLayer
@@ -72,10 +79,11 @@ struct Model{T,Q}
     parameters::T
     layers::Q
 end
-struct ParameterisedLayer{T, Q}
+struct ParameterisedLayer{T, Q} <: AbstractParameterisedLayer
     layer::T
     parameter_views::Q
 end
+_inner_layer(layer::ParameterisedLayer) = layer.layer
 
 # Activation functions
 sigmoid(x) = inv(one(typeof(x) + exp(-x)))
@@ -151,5 +159,7 @@ end
 
 # API
 export Static, Dense, chain, sigmoid, relu, parameters
+
+include("preallocation.jl")
 
 end
