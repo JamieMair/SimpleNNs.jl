@@ -10,19 +10,19 @@ flatten_size(size::Number) = size
 # Abstract types
 abstract type AbstractLayer end
 datatype(::AbstractLayer) = unimplemented()
-outputsize(::AbstractLayer) = unimplemented()
+outputcount(::AbstractLayer) = unimplemented()
 parameter_array_size(::AbstractLayer) = unimplemented()
 num_parameters(layer::AbstractLayer) = flatten_size(parameter_array_size(layer))
 parameter_indices(::AbstractLayer) = unimplemented()
 
 abstract type AbstractParameterisedLayer <: AbstractLayer end
 
-
 # Layer types
-struct Static{DT, S} <: AbstractLayer
+Base.@kwdef struct Static{DT, S} <: AbstractLayer
     inputs::S
-    datatype::DT = Val(Float32)
+    datatype::Val{DT} = Val(Float32)
 end
+Static(inputs::Integer; kwargs...) = Static(;inputs=inputs, kwargs...)
 Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function} <: AbstractLayer
     outputs::Int
     inputs::K = :infer
@@ -30,6 +30,7 @@ Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function} <: Abstra
     activation_fn::T = identity
     parameter_type::Val{DT} = Val(Float32)
 end
+Dense(outputs::Integer; kwargs...) = Dense(;outputs=outputs, kwargs...)
 
 datatype(::Static{DT, S}) where {DT, S} = DT
 datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
@@ -51,22 +52,29 @@ function parameter_array_size(layer::Dense)
 end
 num_parameters(::Static) = 0
 num_parameters(layer::Dense) = layer.outputs * (layer.inputs + (layer.use_bias ? 1 : 0))
-function parameter_indices(layer, current_offset::Integer)
+function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int}}
     parameter_sizes = parameter_array_size(layer)
-    if eltype(parameter_sizes) isa Tuple
+    if eltype(parameter_sizes) <: Tuple
         sizes = flatten_size.(parameter_sizes)
         offsets = cumsum(sizes) .- sizes
-        ranges = ((current_offset+1+offset:current_offset+offset+s) for (s, offset) in zip(sizes, offsets))
+        ranges = [(current_offset+1+offset:current_offset+offset+s) for (s, offset) in zip(sizes, offsets)]
         return ranges
     end
 
-    return (current_offset+1:current_offset+parameter_sizes)
+    num_parameters = flatten_size(parameter_sizes)
+
+    @assert typeof(num_parameters) <: Integer
+    return [current_offset+1:current_offset+num_parameters]
 end
 
 # Model
-struct Model{T,Q,K}
+struct Model{T,Q}
     parameters::T
     layers::Q
+end
+struct ParameterisedLayer{T, Q}
+    layer::T
+    parameter_views::Q
 end
 
 # Activation functions
@@ -76,10 +84,17 @@ relu(x) = ifelse(x>=zero(typeof(x)), x, zero(typeof(x)))
 reconstruct_layer(layer::AbstractLayer, previous_layer_size) = layer
 function reconstruct_layer(layer::Dense, previous_layer_size::Int)
     if layer.inputs isa Symbol
-        return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn)
+        return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type)
     else
         return layer
     end
+end
+
+function _map_views(indices::AbstractArray{Q}, array::AbstractArray) where {Q<:UnitRange}
+    return (x->view(array, x)).(indices)
+end
+function _map_views(indices::AbstractArray{T}, array::AbstractArray) where {Q<:UnitRange, T<:AbstractArray{Q}}
+    return (x->_map_views(x, array)).(indices)
 end
 
 function chain(layers...)
@@ -87,14 +102,14 @@ function chain(layers...)
     if !(input_layer isa Static)
         @error "The first layer should always be a static layer, specifying the input size."
     end
-    previous_layer_size::Integer = outputsize(input_layer)
-    input_datatype = datatype(first_layer)
+    previous_layer_size::Integer = outputcount(input_layer)
+    input_datatype = datatype(input_layer)
     
     overall_datatype = input_datatype
 
     total_parameter_size = 0
     # Create a mapping from layers to parameters
-    layer_indices = Any[parameter_indices(input_layer, total_parameter_size)]
+    layer_indices = Vector([parameter_indices(input_layer, total_parameter_size)])
     
     for layer in network_layers
         # Reconstruct the layer, adding in the previous layer size
@@ -115,7 +130,7 @@ function chain(layers...)
             error("Layer expected $(expected_inputs), but previous layer has a size of $(previous_layer_size)")
         end
 
-        layer_size = outputsize(layer)
+        layer_size = outputcount(layer)
 
         num_params = num_parameters(layer)
         push!(layer_indices, parameter_indices(layer, total_parameter_size))
@@ -125,13 +140,14 @@ function chain(layers...)
     end
 
     parameter_array = zeros(overall_datatype, total_parameter_size)
-    # todo
-    """
-    1 - map views onto the parameter array
-    2 - create a model object
-    """
-
-
+    parameter_views = _map_views(layer_indices, parameter_array)
+    
+    model_layers = [ParameterisedLayer(l, v) for (l,v) in zip(layers, parameter_views)]
+    return Model(parameter_array, model_layers)
 end
+
+
+# API
+export Static, Dense, chain, sigmoid, relu
 
 end
