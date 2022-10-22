@@ -77,9 +77,9 @@ function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int
 end
 
 # Model
-struct Model{T<:AbstractArray,Q<:AbstractParameterisedLayer}
+struct Model{T<:AbstractArray,Q}
     parameters::T
-    layers::AbstractArray{Q}
+    layers::Q
 end
 struct ParameterisedLayer{T, Q} <: AbstractParameterisedLayer
     layer::T
@@ -170,7 +170,7 @@ function chain(layers...)::Model
     parameter_array = zeros(overall_datatype, total_parameter_size)
     parameter_views = _map_views(layer_indices, parameter_array)
     
-    model_layers = [ParameterisedLayer(l, v) for (l,v) in zip(reconstructed_layers, parameter_views)]
+    model_layers = Tuple(ParameterisedLayer(l, v) for (l,v) in zip(reconstructed_layers, parameter_views))
     return Model(parameter_array, model_layers)
 end
 
