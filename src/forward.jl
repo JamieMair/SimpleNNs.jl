@@ -24,9 +24,9 @@ end
 
 function forward!(cache::ForwardPassCache, model::Model)
     current_input = cache.input
-    for i in eachindex(cache.layer_outputs)
-        layer = model.layers[i+1] # Start from the first parameterised layer
-        layer_output = cache.layer_outputs[i]
+    for (i, layer) in enumerate(model.layers)
+        i == 1 && continue
+        layer_output = cache.layer_outputs[i-1]
         current_input = forward_inner!(layer_output, layer, current_input)
     end
     nothing
