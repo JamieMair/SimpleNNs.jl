@@ -72,13 +72,7 @@ struct MSELoss{T<:AbstractVector}
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss::MSELoss)
-    network_layers = model.layers[2:length(model.layers)]
-    previous_layer_outputs = (forward_cache.input, Iterators.take(forward_cache.layer_outputs, length(forward_cache.layer_outputs)-1)...)
-
     current_layer_output = last(forward_cache.layer_outputs)
-    relevant_parameter_gradient_views = view(backprop_cache.parameter_gradient_views, 2:length(backprop_cache.parameter_gradient_views))
-    iter = Iterators.reverse(Iterators.zip(relevant_parameter_gradient_views, backprop_cache.layer_partials, previous_layer_outputs, network_layers))
-
     current_partial = last(backprop_cache.layer_partials)
     current_outputs = last(forward_cache.layer_outputs)
     
@@ -86,20 +80,20 @@ function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardP
     current_partial .= (current_outputs .- loss.targets') .* last_layer_derivative_fn.(current_outputs)
     
     current_weights = weights(last(model.layers))
-    num_layers = length(network_layers)
+    num_layers = length(model.layers)-1 # Number of parameterised layers
     is_last_layer = true
     for i in num_layers:-1:1
-        layer_param_grads = relevant_parameter_gradient_views[i]
+        layer_param_grads = backprop_cache.parameter_gradient_views[i+1]
         layer_partials = backprop_cache.layer_partials[i]
-        previous_layer_output = previous_layer_outputs[i]
-        layer = network_layers[i]
+        previous_layer_output = i == 1 ? forward_cache.input : forward_cache.layer_outputs[i-1]
+        layer = model.layers[i+1] # Skip the first layer
         
         if !is_last_layer
             backprop!(layer_partials, _inner_layer(layer), current_weights, current_partial, current_layer_output)
         else
             is_last_layer = false
         end
-        
+
         calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
 
         current_layer_output = previous_layer_output
