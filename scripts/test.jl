@@ -34,15 +34,26 @@ loss = MSELoss(outputs)
 backprop!(gradient_cache, forward_cache, model, loss)
 
 lr = 0.005 / N
-epochs = 100000
+epochs = Int(10^4)
 losses = Float32[]
+beta_1 = 0.9f0
+beta_2 = 0.999f0
+m = similar(gradient_cache.parameter_gradients)
+v = similar(gradient_cache.parameter_gradients)
+fill!(m, 0.0)
+fill!(v, 0.0)
 begin
     for e in ProgressBar(1:epochs)
         forward!(forward_cache, model)
         model_outputs = get_outputs(forward_cache)
         push!(losses, mse(outputs, model_outputs))
         backprop!(gradient_cache, forward_cache, model, loss)
-        params .-= lr .* gradient_cache.parameter_gradients
+        m .= beta_1 .* m + (1-beta_1) .* gradient_cache.parameter_gradients
+        v .= beta_1 .* v + (1-beta_2) .* gradient_cache.parameter_gradients .^ 2
+        denom_1 = inv(1 - beta_1 ^ e)
+        denom_2 = inv(1 - beta_2 ^ e)
+        eps = convert(Float32, 1e-8)
+        params .-= lr .* (m .* denom_1) ./ (sqrt.(v.*denom_2) .+ eps)
     end
     forward!(forward_cache, model)
     model_outputs = get_outputs(forward_cache)
