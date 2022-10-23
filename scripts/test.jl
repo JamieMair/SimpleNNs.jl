@@ -64,7 +64,7 @@ using Plots
 begin
     flat_inputs = reshape(inputs, :)
     plt = scatter(flat_inputs, outputs, label="True")
-    scatter!(plt, flat_inputs, reshape(model_outputs, :), label="Pred", legend=:topleft)
+    scatter!(plt, flat_inputs, reshape(model_outputs, :), label="Pred", legend=:topleft, alpha=0.8)
 
     return plt
 end
