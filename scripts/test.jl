@@ -1,4 +1,5 @@
 using SimpleNNs
+using ProgressBars
 
 model = chain(
     Static(1), # Layer 1
@@ -13,9 +14,12 @@ rand!(model.parameters)
 
 N = 512
 inputs = rand(Float32, 1, N)
+function output_fn(x) 
 freq = 4.0
 offset = 1.0
-outputs = Float32.(reshape(inputs.*sin.(inputs .* freq .-offset) .+ offset, :))
+    return x*sin(x * freq - offset) + offset
+end
+outputs = Float32.(reshape(output_fn.(inputs), :))
 # Preallocate Model
 forward_cache = preallocate(model, N)
 gradient_cache = preallocate_grads(model, N)
@@ -33,7 +37,7 @@ lr = 0.005 / N
 epochs = 100000
 losses = Float32[]
 begin
-    for e in 1:epochs
+    for e in ProgressBar(1:epochs)
         forward!(forward_cache, model)
         model_outputs = get_outputs(forward_cache)
         push!(losses, mse(outputs, model_outputs))
