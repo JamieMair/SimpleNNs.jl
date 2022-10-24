@@ -22,14 +22,12 @@ function forward_inner!(layer_output, layer, current_input)
     return current_input
 end
 
-function forward!(cache::ForwardPassCache, model::Model)
-    current_input = cache.input
-    for (i, layer) in enumerate(model.layers)
-        i == 1 && continue
-        layer_output = cache.layer_outputs[i-1]
-        current_input = forward_inner!(layer_output, layer, current_input)
-    end
-    nothing
+forward!(cache::ForwardPassCache, model::Model) = _forward!(cache, model.layers)
+
+@generated function _forward!(cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}) where {N}
+    first_line = :(current_input = cache.input)
+    calls = [:(current_input = forward_inner!(cache.layer_outputs[$i - 1], layers[$i], current_input)) for i in 2:N]
+    Expr(:block, first_line, calls...)
 end
 
 export forward!
