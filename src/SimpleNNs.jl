@@ -198,4 +198,6 @@ include("preallocation.jl")
 include("forward.jl")
 include("backprop.jl")
 
+include("gpu.jl")
+
 end

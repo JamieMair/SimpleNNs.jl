@@ -63,8 +63,8 @@ function preallocate_grads(model::Model, batch_size::Integer)
     parameter_gradients = similar(model.parameters)
     fill!(parameter_gradients, zero(eltype(parameter_gradients)))
     parameter_gradient_views = _map_views(layer_indices, parameter_gradients)
-
-    layer_partials = [zeros(datatype(layer), (outputcount(layer), batch_size)) for layer in network_layers]
+    device_zeros_fn = zeros_fn(model)
+    layer_partials = [device_zeros_fn(datatype(layer), (outputcount(layer), batch_size)) for layer in network_layers]
     return BackpropagationCache(parameter_gradients, parameter_gradient_views, layer_partials)
 end
 
