@@ -3,9 +3,9 @@ using ProgressBars
 
 model = chain(
     Static(1), # Layer 1
-    Dense(16, activation_fn=tanh), # Layer 2
-    Dense(16, activation_fn=tanh), # Layer 3
-    Dense(16, activation_fn=tanh), # Layer 4
+    Dense(16, activation_fn=tanh_fast), # Layer 2
+    Dense(16, activation_fn=tanh_fast), # Layer 3
+    Dense(16, activation_fn=tanh_fast), # Layer 4
     Dense(1, activation_fn=identity), # Layer 5
 );
 params = model.parameters

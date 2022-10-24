@@ -1,5 +1,4 @@
 # Backpropagation algorithm for calculating gradients
-
 function sech2(x)
     ex = exp(x)
     sum_exs = (inv(ex)+ex)
@@ -18,10 +17,12 @@ function activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T}
         return one
     elseif T === typeof(tanh)
         return sech2
-    elseif T === relu
-        return typeof(relu_derivative)
-    elseif T === sigmoid
-        return typeof(sigmoid_derivative)
+    elseif T === typeof(relu)
+        return relu_derivative
+    elseif T === typeof(sigmoid)
+        return sigmoid_derivative
+    elseif T === typeof(tanh_fast)
+        return sech2
     else
         return activation_gradient_fn(Val(T))
     end
