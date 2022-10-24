@@ -15,8 +15,8 @@ rand!(model.parameters)
 N = 512
 inputs = rand(Float32, 1, N)
 function output_fn(x) 
-freq = 4.0
-offset = 1.0
+    freq = 4.0
+    offset = 1.0
     return x*sin(x * freq - offset) + offset
 end
 outputs = Float32.(reshape(output_fn.(inputs), :))
