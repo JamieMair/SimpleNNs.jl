@@ -12,8 +12,8 @@ params = model.parameters
 using Random
 rand!(model.parameters)
 
-N = 512
-inputs = rand(Float32, 1, N)
+N = 128
+inputs = reshape(collect(LinRange(0.0, 1.0, N)), 1, N)
 function output_fn(x) 
     freq = 4.0
     offset = 1.0

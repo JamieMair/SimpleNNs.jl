@@ -118,7 +118,7 @@ end
         calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
     end
 
-    return Expr(:block, setup_block, last_layer, middle_layers, first_layer)
+    return Expr(:block, setup_block, last_layer, middle_layers..., first_layer)
 end
 
 export preallocate_grads, backprop!, MSELoss
