@@ -46,6 +46,7 @@ function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_la
         b_grads = reshape(last(gradient_buffer), :, 1)
         sum!(b_grads, partials_buffer) # TODO: Remove allocations
     end
+    nothing
 end
 
 struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
@@ -72,35 +73,51 @@ struct MSELoss{T<:AbstractVector}
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss::MSELoss)
-    current_layer_output = last(forward_cache.layer_outputs)
-    current_partial = last(backprop_cache.layer_partials)
-    current_outputs = last(forward_cache.layer_outputs)
+    _backprop!(backprop_cache, forward_cache, model.layers, loss)
+    nothing
+end
+
+@generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss::MSELoss) where {N}
+    setup_block = quote 
+        current_layer_output = last(forward_cache.layer_outputs)
+        current_partial = last(backprop_cache.layer_partials)
+        current_outputs = last(forward_cache.layer_outputs)
     
-    last_layer_derivative_fn = activation_gradient_fn(_inner_layer(last(model.layers)))
-    current_partial .= (current_outputs .- loss.targets') .* last_layer_derivative_fn.(current_outputs)
-    
-    current_weights = weights(last(model.layers))
-    num_layers = length(model.layers)-1 # Number of parameterised layers
-    is_last_layer = true
-    for i in num_layers:-1:1
-        layer_param_grads = backprop_cache.parameter_gradient_views[i+1]
-        layer_partials = backprop_cache.layer_partials[i]
-        previous_layer_output = i == 1 ? forward_cache.input : forward_cache.layer_outputs[i-1]
-        layer = model.layers[i+1] # Skip the first layer
+        last_layer_derivative_fn = activation_gradient_fn(_inner_layer(last(layers)))
+        current_partial .= (current_outputs .- loss.targets') .* last_layer_derivative_fn.(current_outputs)
         
-        if !is_last_layer
+        current_weights = weights(last(layers))
+    end
+    last_layer = :(calc_grads!(backprop_cache.parameter_gradient_views[$N], backprop_cache.layer_partials[$N - 1], _inner_layer(last(layers)), forward_cache.layer_outputs[$N - 2]))
+
+    middle_layers = map((N-2):-1:2) do i 
+        quote
+            layer_param_grads = backprop_cache.parameter_gradient_views[$i+1]
+            layer_partials = backprop_cache.layer_partials[$i]
+            previous_layer_output = forward_cache.layer_outputs[$i-1]
+            layer = layers[$i+1]
+            
             backprop!(layer_partials, _inner_layer(layer), current_weights, current_partial, current_layer_output)
-        else
-            is_last_layer = false
+            calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
+
+            current_layer_output = previous_layer_output
+            current_partial = layer_partials
+            current_weights = weights(layer)
         end
+    end
+
+    first_layer = quote
+        layer_param_grads = backprop_cache.parameter_gradient_views[2]
+        layer_partials = backprop_cache.layer_partials[1]
+        previous_layer_output = forward_cache.input
+        layer = layers[2]
+        
+        backprop!(layer_partials, _inner_layer(layer), current_weights, current_partial, current_layer_output)
 
         calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
-
-        current_layer_output = previous_layer_output
-        current_partial = layer_partials
-        current_weights = weights(layer)
     end
-    nothing
+
+    return Expr(:block, setup_block, last_layer, middle_layers, first_layer)
 end
 
 export preallocate_grads, backprop!, MSELoss
