@@ -1,6 +1,6 @@
-struct ForwardPassCache{A<:AbstractArray, B<:AbstractArray}
+struct ForwardPassCache{A<:AbstractArray, B<:AbstractArray, C<:AbstractArray{B}}
     input::A
-    layer_outputs::AbstractArray{B}
+    layer_outputs::C
 end
 get_outputs(cache::ForwardPassCache) = last(cache.layer_outputs)
 function preallocate(model::Model, batch_size::Integer)

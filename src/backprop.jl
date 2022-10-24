@@ -48,10 +48,10 @@ function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_la
     end
 end
 
-struct BackpropagationCache{A,B,C}
-    parameter_gradients::AbstractArray{A}
-    parameter_gradient_views::AbstractArray{B}
-    layer_partials::AbstractArray{C}
+struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
+    parameter_gradients::A
+    parameter_gradient_views::C
+    layer_partials::E
 end
 function preallocate_grads(model::Model, batch_size::Integer)
     (_, network_layers) = Iterators.peel(model.layers)
