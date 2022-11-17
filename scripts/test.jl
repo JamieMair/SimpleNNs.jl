@@ -77,8 +77,8 @@ end
 using Plots
 begin
     flat_inputs = reshape(inputs, :)
-    plt = plot(Array(flat_inputs), Array(outputs), label="True")
-    plot!(plt, Array(flat_inputs), Array(reshape(model_outputs, :)), label="Pred", legend=:topleft, alpha=0.8)
+    plt = plot(Array(flat_inputs), Array(outputs), label="True", linestyle=:solid, lw=3)
+    plot!(plt, Array(flat_inputs), Array(reshape(model_outputs, :)), label="Pred", legend=:topleft, alpha=0.8, linestyle=:dash, lw=3)
 
     return plt
 end
