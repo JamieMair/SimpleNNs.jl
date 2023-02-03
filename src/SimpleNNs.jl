@@ -32,14 +32,15 @@ Base.@kwdef struct Static{DT, S} <: AbstractLayer
     datatype::Val{DT} = Val(Float32)
 end
 Static(inputs::Integer; kwargs...) = Static(;inputs=inputs, kwargs...)
-Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function} <: AbstractLayer
+Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function, B} <: AbstractLayer
     outputs::Int
     inputs::K = :infer
-    use_bias::Bool = true
+    use_bias::Val{B} = Val(true)
     activation_fn::T = identity
     parameter_type::Val{DT} = Val(Float32)
 end
 Dense(outputs::Integer; kwargs...) = Dense(;outputs=outputs, kwargs...)
+has_bias(::Dense{KT, K, T, B}) where {KT, K, T, B} = B
 
 datatype(::Static{DT, S}) where {DT, S} = DT
 datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
@@ -53,14 +54,14 @@ end
 parameter_array_size(::Static) = 0
 function parameter_array_size(layer::Dense)
     matrix_size = (layer.outputs, layer.inputs)
-    if !layer.use_bias
+    if !has_bias(layer)
         return matrix_size
     else
         return (matrix_size, (layer.outputs,))
     end
 end
 num_parameters(::Static) = 0
-num_parameters(layer::Dense) = layer.outputs * (layer.inputs + (layer.use_bias ? 1 : 0))
+num_parameters(layer::Dense) = layer.outputs * (layer.inputs + (has_bias(layer) ? 1 : 0))
 function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int}}
     parameter_sizes = parameter_array_size(layer)
     if eltype(parameter_sizes) <: Tuple

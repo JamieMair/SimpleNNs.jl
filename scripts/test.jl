@@ -3,7 +3,7 @@ import SimpleNNs.GPU: gpu
 using ProgressBars
 using CUDA
 
-use_gpu = true
+use_gpu = false
 to_device = use_gpu ? gpu : identity
 
 model = chain(

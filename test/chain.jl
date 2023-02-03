@@ -2,7 +2,7 @@
     model = chain(
         Static(2),
         Dense(10, activation_fn=sigmoid),
-        Dense(5, use_bias=false, activation_fn=tanh),
+        Dense(5, use_bias=Val(false), activation_fn=tanh),
         Dense(1)
     )
 
@@ -16,7 +16,7 @@ end
     model = chain(
         Static(2),
         Dense(10, activation_fn=sigmoid),
-        Dense(5, use_bias=false, activation_fn=tanh),
+        Dense(5, use_bias=Val(false), activation_fn=tanh),
         Dense(1)
     );
     parameter_array_lengths = [1, 2, 1, 2]

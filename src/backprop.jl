@@ -43,7 +43,7 @@ function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_la
     w_grads = reshape(first(gradient_buffer), layer.outputs, layer.inputs)
     mul!(w_grads, partials_buffer, transpose(previous_layer_output))
 
-    if layer.use_bias
+    if has_bias(layer)
         b_grads = reshape(last(gradient_buffer), :, 1)
         sum!(b_grads, partials_buffer) # TODO: Remove allocations
     end
