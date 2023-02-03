@@ -96,3 +96,5 @@ function reconstruct_layer(layer::Dense, previous_layer_size::Int)
         return layer
     end
 end
+
+include("conv.jl")
