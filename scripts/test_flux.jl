@@ -1,6 +1,5 @@
 using Flux
 
-Flux.tanh_fast
 model = Flux.Chain(
     Dense(1, 16, tanh),    
     Dense(16, 16, tanh),    

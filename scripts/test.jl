@@ -3,7 +3,7 @@ import SimpleNNs.GPU: gpu
 using ProgressBars
 using CUDA
 
-use_gpu = false
+use_gpu = true
 to_device = use_gpu ? gpu : identity
 
 model = chain(
@@ -44,7 +44,6 @@ end
 loss = MSELoss(outputs)
 
 backprop!(gradient_cache, forward_cache, model, loss)
-
 
 begin
     lr = 0.05 / N
