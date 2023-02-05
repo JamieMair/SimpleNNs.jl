@@ -26,7 +26,7 @@ function chain(layers...)::Model
     if !(input_layer isa Static)
         @error "The first layer should always be a static layer, specifying the input size."
     end
-    previous_layer_size::Integer = outputcount(input_layer)
+    previous_layer_size = unbatched_output_size(input_layer)
     input_datatype = datatype(input_layer)
     
     overall_datatype = input_datatype
@@ -55,7 +55,7 @@ function chain(layers...)::Model
             error("Layer expected $(expected_inputs), but previous layer has a size of $(previous_layer_size)")
         end
 
-        layer_size = outputcount(layer)
+        layer_size = unbatched_output_size(layer)
 
         num_params = num_parameters(layer)
         push!(layer_indices, parameter_indices(layer, total_parameter_size))

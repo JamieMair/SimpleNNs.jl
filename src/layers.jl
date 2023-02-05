@@ -1,7 +1,7 @@
 # Abstract types
 abstract type AbstractLayer end
 datatype(::AbstractLayer) = unimplemented()
-outputcount(::AbstractLayer) = unimplemented()
+unbatched_output_size(::AbstractLayer) = unimplemented()
 parameter_array_size(::AbstractLayer) = unimplemented()
 num_parameters(layer::AbstractLayer) = flatten_size(parameter_array_size(layer))
 parameter_indices(::AbstractLayer) = unimplemented()
@@ -11,7 +11,7 @@ _inner_layer(::AbstractParameterisedLayer) = unimplemented()
 parameters(::AbstractParameterisedLayer) = unimplemented()
 # Forward all definitions to the "layer" property of the abstract layer
 datatype(layer::AbstractParameterisedLayer) = datatype(_inner_layer(layer))
-outputcount(layer::AbstractParameterisedLayer) = outputcount(_inner_layer(layer))
+unbatched_output_size(layer::AbstractParameterisedLayer) = unbatched_output_size(_inner_layer(layer))
 parameter_array_size(layer::AbstractParameterisedLayer) = parameter_array_size(_inner_layer(layer))
 num_parameters(layer::AbstractParameterisedLayer) = num_parameters(_inner_layer(layer))
 parameter_indices(layer::AbstractParameterisedLayer) = parameter_indices(_inner_layer(layer))
@@ -34,8 +34,8 @@ has_bias(::Dense{KT, K, T, B}) where {KT, K, T, B} = B
 
 datatype(::Static{DT, S}) where {DT, S} = DT
 datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
-outputcount(layer::Static) = flatten_size(layer.inputs)
-outputcount(layer::Dense) = layer.outputs
+unbatched_output_size(layer::Static) = flatten_size(layer.inputs)
+unbatched_output_size(layer::Dense) = layer.outputs
 inputsize(layer::Static) = 0
 function inputsize(layer::Dense)
     layer.inputs isa Symbol && error("Layer inputs $(layer.inputs) should be set to a number.")
