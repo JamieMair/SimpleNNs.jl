@@ -18,3 +18,5 @@ forward_cache = preallocate(model, batch_size)
 set_inputs!(forward_cache, reshape(1:reduce(*, input_size), input_size))
 
 forward!(forward_cache, model)
+
+# TODO: Error in the forward pass calculation, output dims should be (W-k_1+1)by(H-k_2+1). This needs changing.
