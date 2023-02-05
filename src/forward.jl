@@ -19,10 +19,10 @@ function forward!(output::AbstractArray, layer::Conv, parameters, input::Abstrac
     spatial_dims = length(layer.kernel_size)
     
     # TODO: Change below to use a stride other than 1
-    kernel_centres = CartesianIndices(map((x,y)->(1+x ÷ 2):(y-x÷2);, layer.kernel_size, size(input)[1:spatial_dims]))
+    kernel_centres = CartesianIndices(map((x,y)->(1+x ÷ 2):(y-x÷2), layer.kernel_size, size(input)[1:spatial_dims]))
     output_dimensions = CartesianIndices(size(output)[1:spatial_dims])
-    kernel_offsets = CartesianIndices(map(x->(-x÷2):(x÷2);, layer.kernel_size))
-    fixed_offset = CartesianIndex(map(x->(x÷2+1);, layer.kernel_size))
+    kernel_offsets = CartesianIndices(map(x->(-x÷2):(x÷2), layer.kernel_size))
+    fixed_offset = CartesianIndex(map(x->(x÷2+1), layer.kernel_size))
 
 
     for n in axes(output, length(output))

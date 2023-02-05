@@ -1,4 +1,4 @@
-Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Symbol,NTuple{_, Int}}, K<:Union{Symbol,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}} <: AbstractLayer
+Base.@kwdef struct Conv{DT<:Real, KDIMS, KSIZE<:Union{Symbol,NTuple{KDIMS, Int}}, K<:Union{Symbol,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}} <: AbstractLayer
     out_channels::Int
     use_bias::Val{B} = Val(true)
     parameter_type::Val{DT} = Val(Float32)
@@ -7,8 +7,9 @@ Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Symbol,NTuple{_, Int}}, K<:Union{
     kernel_size::KS
     activation_fn::T = identity
 end
-Conv(kernel_size<:NTuple{N, Int}, out_channels::Int; kwargs...) where {N} = Dense(;kernel_size, out_channels, kwargs...)
+Conv(kernel_size::NTuple{N, Int}, out_channels::Int; kwargs...) where {N} = Dense(;kernel_size, out_channels, kwargs...)
 datatype(::Conv{DT}) where {DT} = DT
+has_bias(layer) = typeof(layer.use_bias).parameters[begin]
 function inputsize(layer::Conv)
     layer.in_size isa Symbol && error("Layer inputs $(layer.inputs) should be set to a number.")
     return layer.in_size
@@ -62,7 +63,12 @@ end
 
 function kernel_weights(layer::Conv, params)
     weights = first(params)
-    return reshape(weights, (layer.kernel_size..., layer.in_channels, layer.out_channels))
+    new_shape = (layer.kernel_size..., layer.in_channels, layer.out_channels)
+    if size(weights)==new_shape
+        return weights
+    end
+    # TODO: FIGURE OUT WHY RESHAPE IS ALLOCATING
+    return Base.ReshapedArray(weights, new_shape, ())
 end
 function kernel_biases(::Conv, params)
     return last(params)

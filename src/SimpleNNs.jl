@@ -73,7 +73,7 @@ end
 
 
 # API
-export Static, Dense, chain, sigmoid, relu, tanh_fast, parameters
+export Static, Dense, Conv, chain, sigmoid, relu, tanh_fast, parameters
 
 include("preallocation.jl")
 include("forward.jl")
