@@ -19,17 +19,16 @@ end
         Dense(5, use_bias=Val(false), activation_fn=tanh),
         Dense(1)
     );
-    parameter_array_lengths = [1, 2, 1, 2]
-    all((x->length(x.parameter_views)).(model.layers) .== parameter_array_lengths)
+    parameter_array_lengths = (2, 1, 2)
+    @test all((x->length(x.parameter_views)).(model.layers[2:end]) .== parameter_array_lengths)
 
     params = parameters(model)
     # Set parameters equal to their indices
     params .= 1:length(params)
     parameter_values = [
-        [model.parameters[1:0]],
         [model.parameters[1:20], model.parameters[21:30]],
         [model.parameters[31:80]],
         [model.parameters[81:85], model.parameters[86:86]]
     ]
-    all((x->x.parameter_views).(model.layers) .== parameter_values)
+    @test all((x->x.parameter_views).(model.layers[2:end]) .== parameter_values)
 end
