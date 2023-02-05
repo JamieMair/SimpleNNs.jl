@@ -21,7 +21,7 @@ Base.@kwdef struct Static{DT, S} <: AbstractLayer
     inputs::S
     datatype::Val{DT} = Val(Float32)
 end
-Static(inputs::Integer; kwargs...) = Static(;inputs=inputs, kwargs...)
+Static(inputs::Union{Int, NTuple}; kwargs...) = Static(;inputs=inputs, kwargs...)
 Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function, B} <: AbstractLayer
     outputs::Int
     inputs::K = :infer
@@ -29,19 +29,31 @@ Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function, B} <: Abs
     activation_fn::T = identity
     parameter_type::Val{DT} = Val(Float32)
 end
+Base.@kwdef struct Flatten{DT, S1<:Union{Symbol, NTuple},S2<:Union{Symbol, Int}} <: AbstractLayer 
+    input_size::S1 = :infer
+    output_size::S2 = :infer
+    datatype::Val{DT} = Val(Float32)
+end
 Dense(outputs::Integer; kwargs...) = Dense(;outputs=outputs, kwargs...)
 has_bias(::Dense{KT, K, T, B}) where {KT, K, T, B} = B
-
 datatype(::Static{DT, S}) where {DT, S} = DT
 datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
-unbatched_output_size(layer::Static) = flatten_size(layer.inputs)
+datatype(::Flatten{DT}) where {DT} = DT
+unbatched_output_size(layer::Static) = layer.inputs
 unbatched_output_size(layer::Dense) = layer.outputs
+unbatched_output_size(layer::Flatten) = layer.output_size
 inputsize(layer::Static) = 0
 function inputsize(layer::Dense)
     layer.inputs isa Symbol && error("Layer inputs $(layer.inputs) should be set to a number.")
     return layer.inputs
 end
+function inputsize(layer::Flatten)
+    layer.input_size isa Symbol && error("Flatten layer inputs should be set automatically already.")
+    return layer.input_size
+end
 parameter_array_size(::Static) = 0
+parameter_array_size(::Flatten) = 0
+
 function parameter_array_size(layer::Dense)
     matrix_size = (layer.outputs, layer.inputs)
     if !has_bias(layer)
@@ -51,7 +63,10 @@ function parameter_array_size(layer::Dense)
     end
 end
 num_parameters(::Static) = 0
+num_parameters(::Flatten) = 0
 num_parameters(layer::Dense) = layer.outputs * (layer.inputs + (has_bias(layer) ? 1 : 0))
+should_preallocate(::AbstractLayer) = true
+should_preallocate(::Flatten) = false
 function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int}}
     parameter_sizes = parameter_array_size(layer)
     if eltype(parameter_sizes) <: Tuple
@@ -88,10 +103,17 @@ function biases(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
     return biases
 end
 
-reconstruct_layer(layer::AbstractLayer, previous_layer_size) = layer
-function reconstruct_layer(layer::Dense, previous_layer_size::Int)
+reconstruct_layer(layer::AbstractLayer, previous_layer_size, current_datatype) = layer
+function reconstruct_layer(layer::Dense, previous_layer_size::Int, current_datatype)
     if layer.inputs isa Symbol
         return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type)
+    else
+        return layer
+    end
+end
+function reconstruct_layer(layer::Flatten, previous_layer_size, current_datatype)
+    if layer.input_size isa Symbol || layer.output_size isa Symbol
+        return Flatten(previous_layer_size, reduce(*, previous_layer_size), Val(current_datatype))
     else
         return layer
     end

@@ -1,6 +1,7 @@
 # Defines the forward pass of a model
 using LinearAlgebra
 
+
 function forward!(output, layer::Dense, parameters, input)
     w = reshape(first(parameters), layer.outputs, layer.inputs)
     mul!(output, w, input)
@@ -55,6 +56,10 @@ function forward_inner!(layer_output, layer, current_input)
     forward!(layer_output, inner_layer, params, current_input)
     current_input = layer_output
     return current_input
+end
+function forward_inner!(layer_output, layer::Flatten, current_input)
+    next_output = reshape(current_input, layer.output_size..., :)
+    return next_output
 end
 
 forward!(cache::ForwardPassCache, model::Model) = _forward!(cache, model.layers)

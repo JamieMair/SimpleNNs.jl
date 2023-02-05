@@ -37,7 +37,7 @@ function chain(layers...)::Model
     reconstructed_layers = AbstractLayer[input_layer]
     for layer in network_layers
         # Reconstruct the layer, adding in the previous layer size
-        layer = reconstruct_layer(layer, previous_layer_size)
+        layer = reconstruct_layer(layer, previous_layer_size, overall_datatype)
         push!(reconstructed_layers, layer)
 
         # Check consistency of datatypes
@@ -67,13 +67,13 @@ function chain(layers...)::Model
     parameter_array = zeros(overall_datatype, total_parameter_size)
     parameter_views = _map_views(layer_indices, parameter_array)
     
-    model_layers = Tuple(ParameterisedLayer(l, v) for (l,v) in zip(reconstructed_layers, parameter_views))
+    model_layers = Tuple((num_parameters(l) > 0 ? ParameterisedLayer(l, v) : l) for (l,v) in zip(reconstructed_layers, parameter_views))
     return Model(parameter_array, model_layers)
 end
 
 
 # API
-export Static, Dense, Conv, chain, sigmoid, relu, tanh_fast, parameters
+export Static, Dense, Conv, Flatten, chain, sigmoid, relu, tanh_fast, parameters
 
 include("preallocation.jl")
 include("forward.jl")
