@@ -54,10 +54,16 @@ end
 
 # TODO: We also need some pooling layers to be able to condense the results
 function weights(layer::ParameterisedLayer{T, Q}) where {T<:Conv, Q}
-    weights = first(parameters(layer))
-    return reshape(weights, (layer.layer.kernel_size..., layer.layer.in_channels, layer.layer.out_channels))
+    return kernel_weights(layer.layer, parameters(layer))
 end
 function biases(layer::ParameterisedLayer{T, Q}) where {T<:Conv, Q}
-    biases = last(parameters(layer))
-    return biases
+    return kernel_biases(layer.layer, parameters(layer))
+end
+
+function kernel_weights(layer::Conv, params)
+    weights = first(params)
+    return reshape(weights, (layer.kernel_size..., layer.in_channels, layer.out_channels))
+end
+function kernel_biases(::Conv, params)
+    return last(params)
 end
