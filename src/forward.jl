@@ -35,7 +35,7 @@ function forward!(output::AbstractArray, layer::Conv, parameters, input::Abstrac
                 end
                 for c_in in 1:layer.in_channels
                     for KO in kernel_offsets
-                        s += input[KI+KO, c_in, n] * kernel[KO+fixed_offset, c_in, n]
+                        s += input[KI+KO, c_in, n] * kernel[KO+fixed_offset, c_in, c_out]
                     end
                 end
                 if typeof(layer.activation_fn) !== typeof(identity)
