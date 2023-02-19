@@ -25,7 +25,7 @@ function forward!(output::AbstractArray, layer::Conv, parameters, input::Abstrac
     one_offset = CartesianIndex(1,1)
 
     # TODO: Add bounds checking and make indexing in-bounds
-    for n in axes(output, length(output))
+    for n in axes(output, length(size(output)))
         for c_out in 1:layer.out_channels
             for o_i in output_dimensions
                 s = if has_bias(layer)
