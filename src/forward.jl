@@ -20,29 +20,30 @@ function forward!(output::AbstractArray, layer::Conv, parameters, input::Abstrac
     spatial_dims = length(layer.kernel_size)
     
     # TODO: Change below to use a stride other than 1
-    kernel_centres = CartesianIndices(map((x,y)->(1+x ÷ 2):(y-x÷2), layer.kernel_size, size(input)[1:spatial_dims]))
     output_dimensions = CartesianIndices(size(output)[1:spatial_dims])
-    kernel_offsets = CartesianIndices(map(x->(-x÷2):(x÷2), layer.kernel_size))
-    fixed_offset = CartesianIndex(map(x->(x÷2+1), layer.kernel_size))
+    kernel_indices = CartesianIndices(layer.kernel_size)
+    one_offset = CartesianIndex(1,1)
 
-
+    # TODO: Add bounds checking and make indexing in-bounds
     for n in axes(output, length(output))
         for c_out in 1:layer.out_channels
-            for (KI, OI) in zip(kernel_centres, output_dimensions)
-                s = zero(eltype(output))
-                if has_bias(layer)
-                    s = kernel_biases(layer, parameters)[c_out]
+            for o_i in output_dimensions
+                s = if has_bias(layer)
+                    kernel_biases(layer, parameters)[c_out]
+                else
+                    zero(eltype(output))
                 end
+
                 for c_in in 1:layer.in_channels
-                    for KO in kernel_offsets
-                        s += input[KI+KO, c_in, n] * kernel[KO+fixed_offset, c_in, c_out]
+                    for k_i in kernel_indices
+                        s += kernel[k_i, c_in, c_out] * input[k_i+o_i-one_offset, c_in, n]
                     end
                 end
                 if typeof(layer.activation_fn) !== typeof(identity)
                     s = layer.activation_fn(s)
                 end
 
-                output[OI, c_out, n] = s
+                output[o_i, c_out, n] = s
             end
         end
     end
