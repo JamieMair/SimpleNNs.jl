@@ -28,27 +28,6 @@ function activation_gradient_fn(::Val{T}) where {T}
     end
 end
 
-
-# function backprop!(partials_buffer, layer::Dense, next_layer_weights, next_layer_partials, current_layer_output)
-#     grad_fn = activation_gradient_fn(layer)
-    
-#     mul!(partials_buffer, transpose(next_layer_weights), next_layer_partials)
-#     partials_buffer .*= grad_fn.(current_layer_output)
-
-#     nothing
-# end
-
-# function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_layer_output)
-#     w_grads = reshape(first(gradient_buffer), layer.outputs, layer.inputs)
-#     mul!(w_grads, partials_buffer, transpose(previous_layer_output))
-
-#     if has_bias(layer)
-#         b_grads = reshape(last(gradient_buffer), :, 1)
-#         sum!(b_grads, partials_buffer) # TODO: Remove allocations
-#     end
-#     nothing
-# end
-
 function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer)
     return partials_buffer
 end
@@ -109,81 +88,41 @@ end
 
 function pullback!(partials_buffer, inputs, loss::MSELoss)
     partials_buffer .= inputs .- loss.targets'
-    nothing
+    partials_buffer
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss::MSELoss)
-    #_backprop!(backprop_cache, forward_cache, model.layers, loss)
-    N = length(model.layers) - 1 # Number of layers not including static input
-    
-    # Fill the first partials layer with values
-    current_partial = last(backprop_cache.layer_partials)
-    pullback!(current_partial, last(forward_cache.layer_outputs), loss)
-
-
-    for index in N:-1:1
-
-        inputs = if index==1
-            forward_cache.input
-        else 
-            forward_cache.layer_outputs[index-1]
-        end
-        outputs = forward_cache.layer_outputs[index]
-        gradient_buffer = backprop_cache.parameter_gradient_views[index+1]
-        current_layer = model.layers[index+1]
-        
-        current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
-
-        if index > 1
-            next_partials = backprop_cache.layer_partials[index - 1]
-            current_partial = pullback!(next_partials, current_partial, current_layer)
-        end
-    end
+    _backprop!(backprop_cache, forward_cache, model.layers, loss)
     nothing
 end
 
-# TODO: Do not backprop the partials into the initial static layer
 @generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss::MSELoss) where {N}
     setup_block = quote 
-        current_layer_output = last(forward_cache.layer_outputs)
         current_partial = last(backprop_cache.layer_partials)
-        current_outputs = last(forward_cache.layer_outputs)
-    
-        last_layer_derivative_fn = activation_gradient_fn(_inner_layer(last(layers)))
-        current_partial .= (current_outputs .- loss.targets') .* last_layer_derivative_fn.(current_outputs)
-        
-        current_weights = weights(last(layers))
+        current_partial = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
     end
-    last_layer = :(calc_grads!(backprop_cache.parameter_gradient_views[$N], backprop_cache.layer_partials[$N - 1], _inner_layer(last(layers)), forward_cache.layer_outputs[$N - 2]))
-
-    middle_layers = map((N-2):-1:2) do i 
+    
+    layer_blocks = map((N-1):-1:1) do i
         quote
-            layer_param_grads = backprop_cache.parameter_gradient_views[$i+1]
-            layer_partials = backprop_cache.layer_partials[$i]
-            previous_layer_output = forward_cache.layer_outputs[$i-1]
-            layer = layers[$i+1]
+            inputs = if $i==1
+                forward_cache.input
+            else 
+                forward_cache.layer_outputs[$i-1]
+            end
+            outputs = forward_cache.layer_outputs[$i]
+            gradient_buffer = backprop_cache.parameter_gradient_views[$i+1]
+            current_layer = layers[$i+1]
             
-            backprop!(layer_partials, _inner_layer(layer), current_weights, current_partial, current_layer_output)
-            calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
-
-            current_layer_output = previous_layer_output
-            current_partial = layer_partials
-            current_weights = weights(layer)
+            current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+    
+            if $i > 1
+                next_partials = backprop_cache.layer_partials[$i - 1]
+                current_partial = pullback!(next_partials, current_partial, current_layer)
+            end
         end
     end
 
-    first_layer = quote
-        layer_param_grads = backprop_cache.parameter_gradient_views[2]
-        layer_partials = backprop_cache.layer_partials[1]
-        previous_layer_output = forward_cache.input
-        layer = layers[2]
-        
-        backprop!(layer_partials, _inner_layer(layer), current_weights, current_partial, current_layer_output)
-
-        calc_grads!(layer_param_grads, layer_partials, _inner_layer(layer), previous_layer_output)
-    end
-
-    return Expr(:block, setup_block, last_layer, middle_layers..., first_layer)
+    return Expr(:block, setup_block, layer_blocks...)
 end
 
 export preallocate_grads, backprop!, MSELoss
