@@ -11,8 +11,8 @@ function sigmoid_derivative(x)
     return ex * inv_ex_plusone * inv_ex_plusone 
 end
 
-
-function activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T}
+activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T} = activation_gradient_fn(Val(T))
+function activation_gradient_fn(::Val{T}) where {T}
     if T === typeof(identity)
         return one
     elseif T === typeof(tanh)
@@ -24,10 +24,9 @@ function activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T}
     elseif T === typeof(tanh_fast)
         return sech2
     else
-        return activation_gradient_fn(Val(T))
+        return unimplemented()
     end
 end
-activation_gradient_fn(::Val) = unimplemented()
 
 
 function backprop!(partials_buffer, layer::Dense, next_layer_weights, next_layer_partials, current_layer_output)
