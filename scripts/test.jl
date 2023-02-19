@@ -12,10 +12,11 @@ model = chain(
     Dense(16, activation_fn=tanh_fast), # Layer 3
     Dense(16, activation_fn=tanh_fast), # Layer 4
     Dense(1, activation_fn=identity), # Layer 5
-) |> to_device;
+);
+model = to_device(model);
 params = model.parameters
 using Random
-rand!(model.parameters)
+randn!(model.parameters)
 
 N = 2^9
 inputs = reshape(collect(LinRange(-1.0, 1.0, N)), 1, N) |> to_device
@@ -45,10 +46,10 @@ loss = MSELoss(outputs)
 
 backprop!(gradient_cache, forward_cache, model, loss)
 
+epochs = Int(5*10^4)
+losses = zeros(Float32, epochs+1)
 begin
-    lr = 0.05 / N
-    epochs = Int(10^4)
-    losses = zeros(Float32, epochs+1)
+    lr = 0.02 / N
     beta_1 = 0.9f0
     beta_2 = 0.999f0
     m = similar(gradient_cache.parameter_gradients)
