@@ -39,7 +39,8 @@ function parameter_array_size(layer::Conv)
     end
 end
 function _conv_dim_size(in_size, kernel_size, padding, stride)
-    return fld(in_size + 2*padding - 2 * (kernel_size ÷ 2), stride)
+    dilation = 1 
+    return fld(in_size + 2*padding - dilation * (kernel_size-1) - 1, stride) + 1
 end
 # TODO: Add stride, padding and the padding type (and possibly dilation too)
 function unbatched_output_size(layer::Conv)
