@@ -29,24 +29,59 @@ function activation_gradient_fn(::Val{T}) where {T}
 end
 
 
-function backprop!(partials_buffer, layer::Dense, next_layer_weights, next_layer_partials, current_layer_output)
-    grad_fn = activation_gradient_fn(layer)
+# function backprop!(partials_buffer, layer::Dense, next_layer_weights, next_layer_partials, current_layer_output)
+#     grad_fn = activation_gradient_fn(layer)
     
-    mul!(partials_buffer, transpose(next_layer_weights), next_layer_partials)
-    partials_buffer .*= grad_fn.(current_layer_output)
+#     mul!(partials_buffer, transpose(next_layer_weights), next_layer_partials)
+#     partials_buffer .*= grad_fn.(current_layer_output)
 
-    nothing
+#     nothing
+# end
+
+# function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_layer_output)
+#     w_grads = reshape(first(gradient_buffer), layer.outputs, layer.inputs)
+#     mul!(w_grads, partials_buffer, transpose(previous_layer_output))
+
+#     if has_bias(layer)
+#         b_grads = reshape(last(gradient_buffer), :, 1)
+#         sum!(b_grads, partials_buffer) # TODO: Remove allocations
+#     end
+#     nothing
+# end
+
+function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer)
+    return partials_buffer
 end
+function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer::Dense)
+    # Apply activation backprop
+    if typeof(layer.activation_fn) !== typeof(identity)
+        activation_derivative = activation_gradient_fn(layer)
+        partials_buffer .*= activation_derivative.(outputs)
+    end
 
-function calc_grads!(gradient_buffer, partials_buffer, layer::Dense, previous_layer_output)
     w_grads = reshape(first(gradient_buffer), layer.outputs, layer.inputs)
-    mul!(w_grads, partials_buffer, transpose(previous_layer_output))
+    mul!(w_grads, partials_buffer, transpose(inputs))
 
     if has_bias(layer)
         b_grads = reshape(last(gradient_buffer), :, 1)
         sum!(b_grads, partials_buffer) # TODO: Remove allocations
     end
-    nothing
+    
+    return partials_buffer
+end
+
+function pullback!(input_partials, output_partials, layer::AbstractLayer)
+    return input_partials
+end
+function pullback!(input_partials, output_partials, layer::ParameterisedLayer{T}) where {T<:Dense}
+    layer_weights = weights(layer)
+    mul!(input_partials, transpose(layer_weights), output_partials)
+    return input_partials
+end
+function pullback!(input_partials, output_partials, layer::Flatten)
+    
+    input_partials = reshape(output_partials, layer.input_size..., :)
+    return input_partials
 end
 
 struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
@@ -72,11 +107,42 @@ struct MSELoss{T<:AbstractVector}
     targets::T
 end
 
-function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss::MSELoss)
-    _backprop!(backprop_cache, forward_cache, model.layers, loss)
+function pullback!(partials_buffer, inputs, loss::MSELoss)
+    partials_buffer .= inputs .- loss.targets'
     nothing
 end
 
+function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss::MSELoss)
+    #_backprop!(backprop_cache, forward_cache, model.layers, loss)
+    N = length(model.layers) - 1 # Number of layers not including static input
+    
+    # Fill the first partials layer with values
+    current_partial = last(backprop_cache.layer_partials)
+    pullback!(current_partial, last(forward_cache.layer_outputs), loss)
+
+
+    for index in N:-1:1
+
+        inputs = if index==1
+            forward_cache.input
+        else 
+            forward_cache.layer_outputs[index-1]
+        end
+        outputs = forward_cache.layer_outputs[index]
+        gradient_buffer = backprop_cache.parameter_gradient_views[index+1]
+        current_layer = model.layers[index+1]
+        
+        current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+
+        if index > 1
+            next_partials = backprop_cache.layer_partials[index - 1]
+            current_partial = pullback!(next_partials, current_partial, current_layer)
+        end
+    end
+    nothing
+end
+
+# TODO: Do not backprop the partials into the initial static layer
 @generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss::MSELoss) where {N}
     setup_block = quote 
         current_layer_output = last(forward_cache.layer_outputs)
