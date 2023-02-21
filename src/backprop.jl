@@ -89,6 +89,24 @@ function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer::Con
 
     return partials_buffer
 end
+function backprop!(partials_buffer::CuArray, gradient_buffer::CuArray, inputs::CuArray, outputs::CuArray, layer::Conv)
+    # Apply activation backprop
+    if typeof(layer.activation_fn) !== typeof(identity)
+        activation_derivative = activation_gradient_fn(layer)
+        partials_buffer .*= activation_derivative.(outputs)
+    end
+    conv_params = NNlib.DenseConvDims(size(input), size(kernel); flipkernel=true)
+    k_grads = kernel_weights(layer, gradient_buffer)
+
+    NNlib.∇conv_filter!(k_grads, inputs, partials_buffer, conv_params)
+    # Kernel bias gradients
+    if has_bias(layer)
+        k_biases = kernel_biases(layer, gradient_buffer)
+        NNlibCUDA.∇conv_bias!(k_biases, partials_buffer)
+    end
+
+    return partials_buffer
+end
 
 function pullback!(input_partials, output_partials, layer::AbstractLayer)
     return input_partials
@@ -135,7 +153,15 @@ function pullback!(input_partials, output_partials, layer::ParameterisedLayer{T}
 
     return input_partials
 end
+function pullback!(input_partials::CuArray, output_partials::CuArray, layer::ParameterisedLayer{T}) where {T<:Conv}
+    params = parameters(layer)
+    conv_layer = _inner_layer(layer)::Conv
+    kernel = kernel_weights(conv_layer, params)
+    conv_params = NNlib.DenseConvDims(size(input), size(kernel); flipkernel=true)
+    NNlib.∇conv_data!(input_partials, output_partials, kernel, conv_params)
 
+    return input_partials
+end
 
 struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
     parameter_gradients::A
