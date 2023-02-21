@@ -229,16 +229,42 @@ function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) w
 
     return total_loss
 end
+using CUDA
+function _cross_entropy_pullback_kernel!(partials_buffer, inputs, targets)
+    i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
+    N = size(partials_buffer, ndims(partials_buffer))
+
+    if i < N
+        true_class = targets[i]
+        z = zero(eltype(partials_buffer))
+        for j in axes(inputs, 1)
+            z += partials_buffer[j, i]
+        end
+
+        for j in axes(inputs, 1)
+            e_y = partials_buffer[j, i]
+            e_y_over_z = ifelse(isfinite(e_y), e_y / z, one(eltype(partials_buffer)))
+            partials_buffer[j, i] = (e_y_over_z - (j==true_class))
+        end
+    end
+
+    nothing
+end
 function pullback!(partials_buffer::CuArray, inputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
     @assert length(size(inputs)) == 2
-    cpu_partials = Array(partials_buffer)
-    cpu_inputs = Array(inputs)
-    cpu_loss = LogitCrossEntropyLoss(Array(loss.targets), N)
+    partials_buffer .= exp.(partials_buffer)
 
-    pullback!(cpu_partials, cpu_inputs, cpu_loss)
-    copyto!(partials_buffer, cpu_partials)
+    n = size(inputs, ndims(inputs))
+    targets = loss.targets
+    kernel = @cuda launch=false _cross_entropy_pullback_kernel!(partials_buffer, inputs, targets)
+    config = launch_configuration(kernel.fun)
+    threads = min(n, config.threads)
+    blocks = cld(n, threads)
+    kernel(partials_buffer, inputs, loss.targets; threads=threads, blocks=blocks)
 
-    return nothing
+    total_loss = (sum(partials_buffer) + n)
+
+    return total_loss
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
