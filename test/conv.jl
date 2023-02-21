@@ -81,3 +81,56 @@ end
 
     @test typeof(forward!(forward_cache, model)) <: Any
 end
+
+@testitem "Convolutional NN Backward" begin
+    img_size = (9, 9)
+    kernel_size = (3,3)
+    in_channels = 2
+    out_channels = 1
+    model = chain(
+        Static((img_size..., in_channels)),
+        Conv((3,3), 3; activation_fn=relu),
+        Flatten(), # 147 outputs 
+        Dense(10, activation_fn=relu),
+        Dense(5, activation_fn=relu),
+        Dense(4)
+    )
+    batch_size = 4
+    input_size = (img_size..., in_channels, batch_size)
+    forward_cache = preallocate(model, batch_size)
+    set_inputs!(forward_cache, reshape(1:reduce(*, input_size), input_size))
+    gradient_cache = preallocate_grads(model, batch_size)
+    labels = rand(1:batch_size, batch_size)
+    loss = LogitCrossEntropyLoss(labels, batch_size);
+
+
+    @test typeof(forward!(forward_cache, model)) <: Any
+    @test typeof(backprop!(gradient_cache, forward_cache, model, loss)) <: Any
+end
+
+
+@testitem "Convolutional NN Backward Asymmetric" begin
+    img_size = (9, 9)
+    kernel_size = (5,3)
+    in_channels = 2
+    out_channels = 1
+    model = chain(
+        Static((img_size..., in_channels)),
+        Conv((3,3), 3; activation_fn=relu),
+        Flatten(), # 147 outputs 
+        Dense(10, activation_fn=relu),
+        Dense(5, activation_fn=relu),
+        Dense(4)
+    )
+    batch_size = 4
+    input_size = (img_size..., in_channels, batch_size)
+    forward_cache = preallocate(model, batch_size)
+    set_inputs!(forward_cache, reshape(1:reduce(*, input_size), input_size))
+    gradient_cache = preallocate_grads(model, batch_size)
+    labels = rand(1:batch_size, batch_size)
+    loss = LogitCrossEntropyLoss(labels, batch_size);
+
+    
+    @test typeof(forward!(forward_cache, model)) <: Any
+    @test typeof(backprop!(gradient_cache, forward_cache, model, loss)) <: Any
+end
