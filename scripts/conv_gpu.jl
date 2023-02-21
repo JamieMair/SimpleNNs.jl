@@ -54,4 +54,3 @@ gpu_loss = LogitCrossEntropyLoss((train_labels.+1)|>gpu, 10);
 fill!(gpu_gradient_cache.parameter_gradients, zero(eltype(gpu_gradient_cache.parameter_gradients)))
 CUDA.allowscalar(false)
 backprop!(gpu_gradient_cache, gpu_forward_cache, gpu_model, gpu_loss)
-
