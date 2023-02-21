@@ -1,5 +1,7 @@
 # Defines the forward pass of a model
 using LinearAlgebra
+import NNlib
+import NNlibCUDA
 
 
 function forward!(output, layer::Dense, parameters, input)
@@ -46,6 +48,27 @@ function forward!(output::AbstractArray, layer::Conv, parameters, input::Abstrac
                 output[o_i, c_out, n] = s
             end
         end
+    end
+
+    nothing
+end
+function forward!(output::CuArray, layer::Conv, parameters, input::CuArray)
+    kernel = kernel_weights(layer, parameters)
+    biases = kernel_biases(layer, parameters)
+    conv_params = NNlib.DenseConvDims(size(input), size(kernel); flipkernel=true)
+    activation_fn = if typeof(layer.activation_fn) === typeof(relu)
+        NNlib.relu
+    else
+        identity
+    end
+
+    channel_dim = ndims(output)-1
+    biases = reshape(biases, ntuple(i->i==channel_dim ? size(output, i) : 1, ndims(output)))
+    NNlib.conv_bias_act!(output, input, kernel, conv_params, biases, activation_fn)
+
+    if typeof(activation_fn) != typeof(NNlib.relu) && typeof(activation_fn) != typeof(layer.activation_fn)
+        # Apply activation
+        output .= layer.activation_fn.(output)
     end
 
     nothing

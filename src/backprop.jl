@@ -89,6 +89,27 @@ function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer::Con
 
     return partials_buffer
 end
+function backprop!(partials_buffer::CuArray, gradient_buffer, inputs::CuArray, outputs::CuArray, layer::Conv)
+    # Apply activation backprop
+    if typeof(layer.activation_fn) !== typeof(identity)
+        activation_derivative = activation_gradient_fn(layer)
+        partials_buffer .*= activation_derivative.(outputs)
+    end
+    k_grads = kernel_weights(layer, gradient_buffer)
+    conv_params = NNlib.DenseConvDims(size(inputs), size(k_grads); flipkernel=true)
+    
+
+    NNlib.∇conv_filter!(k_grads, inputs, partials_buffer, conv_params)
+    # Kernel bias gradients
+    if has_bias(layer)
+        k_biases = kernel_biases(layer, gradient_buffer)
+        channel_dim = ndims(outputs) - 1
+        k_biases = reshape(k_biases, ntuple(i->i==channel_dim ? size(outputs, i) : 1, ndims(outputs)))
+        NNlibCUDA.∇conv_bias!(k_biases, partials_buffer)
+    end
+
+    return partials_buffer
+end
 
 function pullback!(input_partials, output_partials, layer::AbstractLayer)
     return input_partials
@@ -135,7 +156,15 @@ function pullback!(input_partials, output_partials, layer::ParameterisedLayer{T}
 
     return input_partials
 end
+function pullback!(input_partials::CuArray, output_partials::CuArray, layer::ParameterisedLayer{T}) where {T<:Conv}
+    params = parameters(layer)
+    conv_layer = _inner_layer(layer)::Conv
+    kernel = kernel_weights(conv_layer, params)
+    conv_params = NNlib.DenseConvDims(size(input_partials), size(kernel); flipkernel=true)
+    NNlib.∇conv_data!(input_partials, output_partials, kernel, conv_params)
 
+    return input_partials
+end
 
 struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
     parameter_gradients::A
@@ -199,6 +228,17 @@ function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) w
     end
 
     return total_loss
+end
+function pullback!(partials_buffer::CuArray, inputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
+    @assert length(size(inputs)) == 2
+    cpu_partials = Array(partials_buffer)
+    cpu_inputs = Array(inputs)
+    cpu_loss = LogitCrossEntropyLoss(Array(loss.targets), N)
+
+    pullback!(cpu_partials, cpu_inputs, cpu_loss)
+    copyto!(partials_buffer, cpu_partials)
+
+    return nothing
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)

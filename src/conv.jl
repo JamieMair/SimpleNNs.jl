@@ -65,7 +65,7 @@ function kernel_weights(layer::Conv, params)
         return weights
     end
     # TODO: FIGURE OUT WHY RESHAPE IS ALLOCATING
-    return Base.ReshapedArray(weights, new_shape, ())
+    return reshape(weights, new_shape)
 end
 function kernel_biases(::Conv, params)
     return last(params)
