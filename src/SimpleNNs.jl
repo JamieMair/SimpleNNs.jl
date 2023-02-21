@@ -8,128 +8,9 @@ unimplemented(msg) = error("Unimplemented function: $msg")
 flatten_size(size::Tuple) = reduce(*, size)
 flatten_size(size::Number) = size
 
-# Abstract types
-abstract type AbstractLayer end
-datatype(::AbstractLayer) = unimplemented()
-outputcount(::AbstractLayer) = unimplemented()
-parameter_array_size(::AbstractLayer) = unimplemented()
-num_parameters(layer::AbstractLayer) = flatten_size(parameter_array_size(layer))
-parameter_indices(::AbstractLayer) = unimplemented()
+include("layers.jl")
+include("activations.jl")
 
-abstract type AbstractParameterisedLayer <: AbstractLayer end
-_inner_layer(::AbstractParameterisedLayer) = unimplemented()
-parameters(::AbstractParameterisedLayer) = unimplemented()
-# Forward all definitions to the "layer" property of the abstract layer
-datatype(layer::AbstractParameterisedLayer) = datatype(_inner_layer(layer))
-outputcount(layer::AbstractParameterisedLayer) = outputcount(_inner_layer(layer))
-parameter_array_size(layer::AbstractParameterisedLayer) = parameter_array_size(_inner_layer(layer))
-num_parameters(layer::AbstractParameterisedLayer) = num_parameters(_inner_layer(layer))
-parameter_indices(layer::AbstractParameterisedLayer) = parameter_indices(_inner_layer(layer))
-
-# Layer types
-Base.@kwdef struct Static{DT, S} <: AbstractLayer
-    inputs::S
-    datatype::Val{DT} = Val(Float32)
-end
-Static(inputs::Integer; kwargs...) = Static(;inputs=inputs, kwargs...)
-Base.@kwdef struct Dense{DT<:Real, K<:Union{Symbol, Int}, T<:Function, B} <: AbstractLayer
-    outputs::Int
-    inputs::K = :infer
-    use_bias::Val{B} = Val(true)
-    activation_fn::T = identity
-    parameter_type::Val{DT} = Val(Float32)
-end
-Dense(outputs::Integer; kwargs...) = Dense(;outputs=outputs, kwargs...)
-has_bias(::Dense{KT, K, T, B}) where {KT, K, T, B} = B
-
-datatype(::Static{DT, S}) where {DT, S} = DT
-datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
-outputcount(layer::Static) = flatten_size(layer.inputs)
-outputcount(layer::Dense) = layer.outputs
-inputsize(layer::Static) = 0
-function inputsize(layer::Dense)
-    layer.inputs isa Symbol && error("Layer inputs $(layer.inputs) should be set to a number.")
-    return layer.inputs
-end
-parameter_array_size(::Static) = 0
-function parameter_array_size(layer::Dense)
-    matrix_size = (layer.outputs, layer.inputs)
-    if !has_bias(layer)
-        return matrix_size
-    else
-        return (matrix_size, (layer.outputs,))
-    end
-end
-num_parameters(::Static) = 0
-num_parameters(layer::Dense) = layer.outputs * (layer.inputs + (has_bias(layer) ? 1 : 0))
-function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int}}
-    parameter_sizes = parameter_array_size(layer)
-    if eltype(parameter_sizes) <: Tuple
-        sizes = flatten_size.(parameter_sizes)
-        offsets = cumsum(sizes) .- sizes
-        ranges = [(current_offset+1+offset:current_offset+offset+s) for (s, offset) in zip(sizes, offsets)]
-        return ranges
-    end
-
-    num_parameters = flatten_size(parameter_sizes)
-
-    @assert typeof(num_parameters) <: Integer
-    return [current_offset+1:current_offset+num_parameters]
-end
-
-# Model
-struct Model{T<:AbstractArray,Q}
-    parameters::T
-    layers::Q
-end
-struct ParameterisedLayer{T, Q} <: AbstractParameterisedLayer
-    layer::T
-    parameter_views::Q
-end
-_inner_layer(layer::ParameterisedLayer) = layer.layer
-parameters(layer::ParameterisedLayer) = layer.parameter_views
-
-function weights(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
-    weights = first(parameters(layer))
-    return reshape(weights, layer.layer.outputs, layer.layer.inputs)
-end
-function biases(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
-    biases = last(parameters(layer))
-    return biases
-end
-
-
-
-
-
-# Activation functions
-sigmoid(x) = inv(one(typeof(x) + exp(-x)))
-relu(x) = ifelse(x>=zero(typeof(x)), x, zero(typeof(x)))
-# tanh_fast from NNlib
-@inline function tanh_fast(x::Float32)
-    x2 = abs2(x)
-    n = evalpoly(x2, (1.0f0, 0.1346604f0, 0.0035974074f0, 2.2332108f-5, 1.587199f-8))
-    d = evalpoly(x2, (1.0f0, 0.4679937f0, 0.026262015f0, 0.0003453992f0, 8.7767893f-7))
-    ifelse(x2 < 66f0, x * (n / d), sign(x))
-end
-@inline function tanh_fast(x::Float64)
-    exp2x = @fastmath exp(x + x)
-    y = (exp2x - 1) / (exp2x + 1)
-    x2 = x * x
-    ypoly = x * evalpoly(x2, (1.0, -0.33333333333324583, 0.13333333325511604, -0.05396823125794372, 0.02186660872609521, -0.008697141630499953))
-    ifelse(x2 > 900.0, sign(x), ifelse(x2 < 0.017, ypoly, y))
-end
-tanh_fast(x::Number) = Base.tanh(x)
-
-
-reconstruct_layer(layer::AbstractLayer, previous_layer_size) = layer
-function reconstruct_layer(layer::Dense, previous_layer_size::Int)
-    if layer.inputs isa Symbol
-        return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type)
-    else
-        return layer
-    end
-end
 
 function _map_views(indices::AbstractArray{Q}, array::AbstractArray) where {Q<:UnitRange}
     return (x->view(array, x)).(indices)
@@ -140,13 +21,12 @@ end
 
 parameters(model::Model) = model.parameters
 
-
 function chain(layers...)::Model
     (input_layer, network_layers) = Iterators.peel(layers)
     if !(input_layer isa Static)
         @error "The first layer should always be a static layer, specifying the input size."
     end
-    previous_layer_size::Integer = outputcount(input_layer)
+    previous_layer_size = unbatched_output_size(input_layer)
     input_datatype = datatype(input_layer)
     
     overall_datatype = input_datatype
@@ -157,7 +37,7 @@ function chain(layers...)::Model
     reconstructed_layers = AbstractLayer[input_layer]
     for layer in network_layers
         # Reconstruct the layer, adding in the previous layer size
-        layer = reconstruct_layer(layer, previous_layer_size)
+        layer = reconstruct_layer(layer, previous_layer_size, overall_datatype)
         push!(reconstructed_layers, layer)
 
         # Check consistency of datatypes
@@ -175,7 +55,7 @@ function chain(layers...)::Model
             error("Layer expected $(expected_inputs), but previous layer has a size of $(previous_layer_size)")
         end
 
-        layer_size = outputcount(layer)
+        layer_size = unbatched_output_size(layer)
 
         num_params = num_parameters(layer)
         push!(layer_indices, parameter_indices(layer, total_parameter_size))
@@ -187,13 +67,13 @@ function chain(layers...)::Model
     parameter_array = zeros(overall_datatype, total_parameter_size)
     parameter_views = _map_views(layer_indices, parameter_array)
     
-    model_layers = Tuple(ParameterisedLayer(l, v) for (l,v) in zip(reconstructed_layers, parameter_views))
+    model_layers = Tuple((num_parameters(l) > 0 ? ParameterisedLayer(l, v) : l) for (l,v) in zip(reconstructed_layers, parameter_views))
     return Model(parameter_array, model_layers)
 end
 
 
 # API
-export Static, Dense, chain, sigmoid, relu, tanh_fast, parameters
+export Static, Dense, Conv, Flatten, chain, sigmoid, relu, tanh_fast, parameters
 
 include("preallocation.jl")
 include("forward.jl")

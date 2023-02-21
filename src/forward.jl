@@ -1,16 +1,53 @@
 # Defines the forward pass of a model
 using LinearAlgebra
 
+
 function forward!(output, layer::Dense, parameters, input)
     w = reshape(first(parameters), layer.outputs, layer.inputs)
     mul!(output, w, input)
     if has_bias(layer)
+        # TODO: Switch to fma for performance
         b = last(parameters)  # Flat vector of biases
         output .+= b # Automatically broadcast column-wise
     end
     if typeof(layer.activation_fn) !== typeof(identity)
         output .= layer.activation_fn.(output)
     end
+    nothing
+end
+function forward!(output::AbstractArray, layer::Conv, parameters, input::AbstractArray)
+    kernel = kernel_weights(layer, parameters)
+    spatial_dims = length(layer.kernel_size)
+    
+    # TODO: Change below to use a stride other than 1
+    output_dimensions = CartesianIndices(size(output)[1:spatial_dims])
+    kernel_indices = CartesianIndices(layer.kernel_size)
+    one_offset = CartesianIndex(1,1)
+
+    # TODO: Add bounds checking and make indexing in-bounds
+    for n in axes(output, length(size(output)))
+        for c_out in 1:layer.out_channels
+            for o_i in output_dimensions
+                s = if has_bias(layer)
+                    kernel_biases(layer, parameters)[c_out]
+                else
+                    zero(eltype(output))
+                end
+
+                for c_in in 1:layer.in_channels
+                    for k_i in kernel_indices
+                        s += kernel[k_i, c_in, c_out] * input[k_i+o_i-one_offset, c_in, n]
+                    end
+                end
+                if typeof(layer.activation_fn) !== typeof(identity)
+                    s = layer.activation_fn(s)
+                end
+
+                output[o_i, c_out, n] = s
+            end
+        end
+    end
+
     nothing
 end
 
@@ -20,6 +57,10 @@ function forward_inner!(layer_output, layer, current_input)
     forward!(layer_output, inner_layer, params, current_input)
     current_input = layer_output
     return current_input
+end
+function forward_inner!(layer_output, layer::Flatten, current_input)
+    next_output = reshape(current_input, layer.output_size..., :)
+    return next_output
 end
 
 forward!(cache::ForwardPassCache, model::Model) = _forward!(cache, model.layers)
