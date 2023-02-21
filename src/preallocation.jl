@@ -23,8 +23,17 @@ function preallocate(model::Model, batch_size::Integer)
     input_size = (unbatched_output_size(input_layer)..., batch_size)
     device_zeros_fn = zeros_fn(model)
     input_array = device_zeros_fn(datatype(input_layer), input_size)
-    layer_outputs = [device_zeros_fn(datatype(layer), _get_preallocation_size(layer, batch_size)) for layer in network_layers]
-    return ForwardPassCache(input_array, layer_outputs)
+    layer_outputs = Vector{Any}(undef, length(model.layers)-1)
+    prev_output = input_array
+    for (i, layer) in enumerate(network_layers)
+        if typeof(layer) <: Flatten
+            layer_outputs[i] = prev_output = reshape(prev_output, layer.output_size..., batch_size)
+            continue
+        end
+        layer_outputs[i] = prev_output = device_zeros_fn(datatype(layer), _get_preallocation_size(layer, batch_size))
+    end
+
+    return ForwardPassCache(input_array, [layer_outputs...])
 end
 # TODO: Add preallocate method that takes an input array and uses that to preallocate.
 
