@@ -230,41 +230,68 @@ function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) w
     return total_loss
 end
 using CUDA
-function _cross_entropy_pullback_kernel!(partials_buffer, inputs, targets)
+const gpu_threads_per_block = 128
+function _cross_entropy_pullback_kernel!(total_loss, partials_buffer, targets, ::Val{NT}) where {NT}
+    # Partials buffer should already contain exp.(inputs)
+    # NT is the number of threads per block
+    @assert blockDim().x == NT
     i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
     N = size(partials_buffer, ndims(partials_buffer))
 
-    if i < N
+    partial_total_loss = CUDA.@cuStaticSharedMem(eltype(total_loss), NT)
+
+    idx = threadIdx().x
+    if i <= N
         true_class = targets[i]
         z = zero(eltype(partials_buffer))
-        for j in axes(inputs, 1)
+        for j in axes(partials_buffer, 1)
             z += partials_buffer[j, i]
         end
 
-        for j in axes(inputs, 1)
+        for j in axes(partials_buffer, 1)
             e_y = partials_buffer[j, i]
             e_y_over_z = ifelse(isfinite(e_y), e_y / z, one(eltype(partials_buffer)))
             partials_buffer[j, i] = (e_y_over_z - (j==true_class))
+            if j==true_class
+                partial_total_loss[idx] = log(e_y_over_z)
+            end
         end
+    else
+        partial_total_loss[idx] = zero(eltype(partial_total_loss))
+    end
+
+    # Reduce the partial cross entropy losses together
+    step = NT ÷ 2
+    while step != 0
+        CUDA.sync_threads()
+        if (idx <= step)
+            partial_total_loss[idx] += partial_total_loss[idx+step]
+        end
+        step ÷= 2
+    end
+
+    if idx == 1
+        CUDA.@atomic total_loss[1] += partial_total_loss[1]
     end
 
     nothing
 end
 function pullback!(partials_buffer::CuArray, inputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
     @assert length(size(inputs)) == 2
-    partials_buffer .= exp.(partials_buffer)
+    partials_buffer .= exp.(inputs)
 
     n = size(inputs, ndims(inputs))
     targets = loss.targets
-    kernel = @cuda launch=false _cross_entropy_pullback_kernel!(partials_buffer, inputs, targets)
-    config = launch_configuration(kernel.fun)
-    threads = min(n, config.threads)
+    threads = 128
     blocks = cld(n, threads)
-    kernel(partials_buffer, inputs, loss.targets; threads=threads, blocks=blocks)
-
-    total_loss = (sum(partials_buffer) + n)
-
-    return total_loss
+    gpu_total_loss = CUDA.zeros(eltype(partials_buffer), 1)
+    @cuda blocks=blocks threads=threads _cross_entropy_pullback_kernel!(gpu_total_loss, partials_buffer, targets, Val(threads))
+    total_loss = zero(eltype(partials_buffer))
+    CUDA.@allowscalar begin
+        total_loss = gpu_total_loss[]
+    end
+    CUDA.unsafe_free!(gpu_total_loss)
+    return (-total_loss)
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)

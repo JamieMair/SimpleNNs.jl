@@ -63,10 +63,10 @@ function cross_entropy_loss(outputs::CuArray, loss::LogitCrossEntropyLoss{T, N})
 end
 # TODO FIX THE CROSS ENTROPY loss
 params = parameters
-epochs = Int(8)
+epochs = Int(4096)
 losses = zeros(Float32, epochs+1)
 begin
-    lr = 0.1 / batch_size
+    lr = 0.002 / batch_size
     beta_1 = 0.9f0
     beta_2 = 0.999f0
     m = similar(gradient_cache.parameter_gradients)
