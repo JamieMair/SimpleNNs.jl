@@ -120,8 +120,8 @@ function pullback!(input_partials, output_partials, layer::ParameterisedLayer{T}
     return input_partials
 end
 function pullback!(input_partials, output_partials, layer::Flatten)
-    
-    input_partials = reshape(output_partials, layer.input_size..., :)
+    n_samples = size(output_partials, ndims(output_partials))
+    input_partials = reshape(output_partials, layer.input_size..., n_samples)
     return input_partials
 end
 function pullback!(input_partials, output_partials, layer::ParameterisedLayer{T}) where {T<:Conv}
@@ -166,10 +166,10 @@ function pullback!(input_partials::CuArray, output_partials::CuArray, layer::Par
     return input_partials
 end
 
-struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D<:AbstractArray, E<:AbstractArray{D}}
+struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B}, D}
     parameter_gradients::A
     parameter_gradient_views::C
-    layer_partials::E
+    layer_partials::D
 end
 function preallocate_grads(model::Model, batch_size::Integer)
     (_, network_layers) = Iterators.peel(model.layers)
@@ -190,7 +190,7 @@ function preallocate_grads(model::Model, batch_size::Integer)
         layer_partials[i] = device_zeros_fn(datatype(layer), _get_preallocation_size(layer, batch_size))
     end
     # TODO: Switch to tuple and allow for a flatten right at the start
-    return BackpropagationCache(parameter_gradients, parameter_gradient_views, [layer_partials...])
+    return BackpropagationCache(parameter_gradients, parameter_gradient_views, Tuple(layer_partials))
 end
 
 abstract type AbstractLoss end
@@ -295,57 +295,58 @@ function pullback!(partials_buffer::CuArray, inputs::CuArray, loss::LogitCrossEn
 end
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
-    # _backprop!(backprop_cache, forward_cache, model.layers, loss)
+    return _backprop!(backprop_cache, forward_cache, model.layers, loss)
 
-    N = length(model.layers)
-    current_partial = last(backprop_cache.layer_partials)
-    total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
+    # N = length(model.layers)
+    # current_partial = last(backprop_cache.layer_partials)
+    # total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
     
     
-    for index in (N-1):-1:1
-        inputs = if index==1
-            forward_cache.input
-        else
-            forward_cache.layer_outputs[index-1]
-        end
+    # for index in (N-1):-1:1
+    #     inputs = if index==1
+    #         forward_cache.input
+    #     else
+    #         forward_cache.layer_outputs[index-1]
+    #     end
 
-        outputs = forward_cache.layer_outputs[index]
-        gradient_buffer = backprop_cache.parameter_gradient_views[index+1]
-        current_layer = model.layers[index+1]
+    #     outputs = forward_cache.layer_outputs[index]
+    #     gradient_buffer = backprop_cache.parameter_gradient_views[index+1]
+    #     current_layer = model.layers[index+1]
         
-        if typeof(current_layer) <: AbstractParameterisedLayer
-            current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
-        end
+    #     if typeof(current_layer) <: AbstractParameterisedLayer
+    #         current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+    #     end
 
-        if index > 1
-            next_partials = backprop_cache.layer_partials[index - 1]
-            current_partial = pullback!(next_partials, current_partial, current_layer)
-        end
-    end
+    #     if index > 1
+    #         next_partials = backprop_cache.layer_partials[index - 1]
+    #         current_partial = pullback!(next_partials, current_partial, current_layer)
+    #     end
+    # end
 
-    return total_loss
+    # return total_loss
 end
 
 @generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss) where {N}
     setup_block = quote 
         current_partial = last(backprop_cache.layer_partials)
-        current_partial = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
+        total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
     end
     
     layer_blocks = map((N-1):-1:1) do i
         quote
             inputs = if $i==1
                 forward_cache.input
-            elseif typeof(forward_cache.layer_outputs[$i-1]) <: Flatten
-                forward_cache.layer_outputs[$i-2]
             else
                 forward_cache.layer_outputs[$i-1]
             end
+    
             outputs = forward_cache.layer_outputs[$i]
             gradient_buffer = backprop_cache.parameter_gradient_views[$i+1]
             current_layer = layers[$i+1]
             
-            current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+            if typeof(current_layer) <: AbstractParameterisedLayer
+                current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+            end
     
             if $i > 1
                 next_partials = backprop_cache.layer_partials[$i - 1]
@@ -354,7 +355,12 @@ end
         end
     end
 
-    return Expr(:block, setup_block, layer_blocks...)
+    end_block = quote
+
+        return total_loss
+    end
+
+    return Expr(:block, setup_block, layer_blocks..., end_block)
 end
 
 export preallocate_grads, backprop!, MSELoss, LogitCrossEntropyLoss
