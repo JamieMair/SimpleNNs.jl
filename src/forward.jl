@@ -117,22 +117,44 @@ function _forward_conv_2d(outputs, inputs, kernel, bias, activation_fn = identit
     nothing
 end
 function forward!(output::CuArray, layer::Conv, parameters, input::CuArray)
-    kernel = kernel_weights(layer, parameters)   
-    @assert length(size(kernel))==4 "Only 2D convolutions are supported"
+    kernel = kernel_weights(layer, parameters)
 
-    w, h, _, n = size(output)
-    x_threads = min(32, w)
-    y_threads = min(32, h)
-    z_threads = min(1024 ÷ x_threads ÷ y_threads, n)
-    num_threads = (x_threads, y_threads, z_threads)
-    num_blocks = (cld(w, x_threads), cld(h, y_threads), cld(n, z_threads))
-    activation = layer.activation_fn
+    if ndims(kernel)==4
+        # Use custom 2D kernel
+        w, h, _, n = size(output)
+        x_threads = min(32, w)
+        y_threads = min(32, h)
+        z_threads = min(1024 ÷ x_threads ÷ y_threads, n)
+        num_threads = (x_threads, y_threads, z_threads)
+        num_blocks = (cld(w, x_threads), cld(h, y_threads), cld(n, z_threads))
+        activation = layer.activation_fn
 
-    if has_bias(layer)
-        biases = kernel_biases(layer, parameters)
-        @cuda blocks=num_blocks threads=num_threads _forward_conv_2d(output, input, kernel, biases, activation)
+        if has_bias(layer)
+            biases = kernel_biases(layer, parameters)
+            @cuda blocks=num_blocks threads=num_threads _forward_conv_2d(output, input, kernel, biases, activation)
+        else
+            @cuda blocks=num_blocks threads=num_threads _forward_conv_2d_no_bias(output, input, kernel, activation)
+        end
     else
-        @cuda blocks=num_blocks threads=num_threads _forward_conv_2d_no_bias(output, input, kernel, activation)
+        kernel = kernel_weights(layer, parameters)
+        @assert !has_bias(layer) "Convolutions with $(ndims(kernel)-2) spatial dimensions with a bias are not supported yet."
+        
+        biases = kernel_biases(layer, parameters)
+        conv_params = NNlib.DenseConvDims(size(input), size(kernel); flipkernel=true)
+        activation_fn = if typeof(layer.activation_fn) === typeof(relu)
+            NNlib.relu
+        else
+            identity
+        end
+    
+        channel_dim = ndims(output)-1
+        biases = reshape(biases, ntuple(i->i==channel_dim ? size(output, i) : 1, ndims(output)))
+        NNlib.conv_bias_act!(output, input, kernel, conv_params, biases, activation_fn)
+    
+        if typeof(activation_fn) != typeof(NNlib.relu) && typeof(activation_fn) != typeof(layer.activation_fn)
+            # Apply activation
+            output .= layer.activation_fn.(output)
+        end
     end
 
     nothing
