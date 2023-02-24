@@ -63,7 +63,8 @@ dataset = load_data(batch_size, device);
 
 img_size = (28,28);
 in_channels = 1;
-models = [create_simple_nn_model(img_size, in_channels, device) for _ in 1:16];
+num_processors = 8
+models = [create_simple_nn_model(img_size, in_channels, device) for _ in 1:num_processors];
 params = [m.parameters for m in models];
 caches = [SimpleNNs.preallocate(m, batch_size) for m in models];
 input_size = (img_size..., in_channels, batch_size);
