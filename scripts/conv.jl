@@ -61,7 +61,7 @@ end
 function cross_entropy_loss(outputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {N, T}
     return cross_entropy_loss(Array(outputs), LogitCrossEntropyLoss(Array(loss.targets), N))
 end
-# TODO FIX THE CROSS ENTROPY loss
+
 params = parameters
 epochs = Int(4096)
 losses = zeros(Float32, epochs+1)
