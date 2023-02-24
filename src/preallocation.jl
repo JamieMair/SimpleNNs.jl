@@ -1,4 +1,4 @@
-struct ForwardPassCache{A<:AbstractArray, B<:AbstractArray, C<:AbstractArray{B}}
+struct ForwardPassCache{A<:AbstractArray, C}
     input::A
     layer_outputs::C
 end
@@ -33,7 +33,7 @@ function preallocate(model::Model, batch_size::Integer)
         layer_outputs[i] = prev_output = device_zeros_fn(datatype(layer), _get_preallocation_size(layer, batch_size))
     end
 
-    return ForwardPassCache(input_array, [layer_outputs...])
+    return ForwardPassCache(input_array, Tuple(layer_outputs))
 end
 # TODO: Add preallocate method that takes an input array and uses that to preallocate.
 

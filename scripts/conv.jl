@@ -2,9 +2,18 @@ using SimpleNNs
 using Random
 using MLDatasets
 using ProgressBars
+using CUDA
+import SimpleNNs.GPU: gpu
 
+
+use_gpu = true
+to_device = use_gpu ? gpu : identity
 dataset = MNIST(:train);
 images, labels = dataset[:];
+
+
+images =  images |> to_device
+labels =  labels |> to_device
 
 num_samples = 128
 train_features = images[:, :, 1:num_samples];
@@ -20,7 +29,7 @@ model = chain(
     Flatten(),
     Dense(32, activation_fn=relu),
     Dense(10, activation_fn=identity)
-)
+) |> to_device
 batch_size = num_samples
 input_size = (img_size..., in_channels, batch_size)
 forward_cache = preallocate(model, batch_size)
@@ -49,12 +58,15 @@ function cross_entropy_loss(outputs, loss::LogitCrossEntropyLoss{T, N}) where {N
     end
     return l
 end
+function cross_entropy_loss(outputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {N, T}
+    return cross_entropy_loss(Array(outputs), LogitCrossEntropyLoss(Array(loss.targets), N))
+end
 
 params = parameters
-epochs = Int(2048)
+epochs = Int(4096)
 losses = zeros(Float32, epochs+1)
 begin
-    lr = 0.1 / batch_size
+    lr = 0.002 / batch_size
     beta_1 = 0.9f0
     beta_2 = 0.999f0
     m = similar(gradient_cache.parameter_gradients)
@@ -92,18 +104,20 @@ end
 
 test_dataset = MNIST(:test);
 test_images, test_labels = test_dataset[:];
-
+test_images = test_images |> to_device
+test_labels = test_labels |> to_device
 test_forward_cache = preallocate(model, length(test_labels));
 set_inputs!(test_forward_cache, reshape(test_images, img_size..., 1, :));
 forward!(test_forward_cache, model)
 test_outputs = get_outputs(test_forward_cache)
-_, model_preds = findmax(test_outputs, dims=1)
+_, model_preds = findmax(Array(test_outputs), dims=1)
 model_preds = reshape((x->x.I[1]).(model_preds), :)
 
 confusion_matrix = begin
     confusion_matrix = zeros(Int, 10, 10)
-    for i in eachindex(test_labels, model_preds)
-        confusion_matrix[test_labels[i]+1, model_preds[i]] += 1
+    cpu_test_labels = Array(test_labels)
+    for i in eachindex(cpu_test_labels, model_preds)
+        confusion_matrix[cpu_test_labels[i]+1, model_preds[i]] += 1
     end
     confusion_matrix
 end
