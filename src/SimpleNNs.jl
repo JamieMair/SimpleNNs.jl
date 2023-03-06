@@ -8,7 +8,7 @@ unimplemented(msg) = error("Unimplemented function: $msg")
 flatten_size(size::Tuple) = reduce(*, size)
 flatten_size(size::Number) = size
 
-include("layers.jl")
+include("layers/layers.jl")
 include("activations.jl")
 
 
