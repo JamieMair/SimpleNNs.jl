@@ -19,5 +19,3 @@ function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int
     return [current_offset+1:current_offset+num_parameters]
 end
 reconstruct_layer(layer::AbstractLayer, previous_layer_size, current_datatype) = layer
-
-
