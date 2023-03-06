@@ -9,7 +9,7 @@ include("activations.jl")
 include("dense.jl")
 include("conv.jl")
 include("flatten.jl")
-
+include("maxpool.jl")
 function forward_inner!(layer_output, layer, current_input)
     inner_layer = _inner_layer(layer)
     params = parameters(layer)
