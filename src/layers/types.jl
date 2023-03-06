@@ -31,4 +31,4 @@ end
 _inner_layer(layer::ParameterisedLayer) = layer.layer
 parameters(layer::ParameterisedLayer) = layer.parameter_views
 
-struct InferSize end
+struct Infer end

@@ -1,6 +1,6 @@
-Base.@kwdef struct Dense{DT<:Real, K<:Union{InferSize, Int}, T<:Function, B} <: AbstractLayer
+Base.@kwdef struct Dense{DT<:Real, K<:Union{Infer, Int}, T<:Function, B} <: AbstractLayer
     outputs::Int
-    inputs::K = InferSize()
+    inputs::K = Infer()
     use_bias::Val{B} = Val(true)
     activation_fn::T = identity
     parameter_type::Val{DT} = Val(Float32)
@@ -11,7 +11,7 @@ has_bias(::Dense{KT, K, T, B}) where {KT, K, T, B} = B
 datatype(::Dense{DT, K, T}) where {DT, K, T} = DT
 unbatched_output_size(layer::Dense) = layer.outputs
 function inputsize(layer::Dense)
-    layer.inputs isa InferSize && error("Layer inputs $(layer.inputs) should be set to a number.")
+    layer.inputs isa Infer && error("Layer inputs $(layer.inputs) should be set to a number.")
     return layer.inputs
 end
 function parameter_array_size(layer::Dense)
@@ -32,7 +32,7 @@ function biases(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
     return biases
 end
 function reconstruct_layer(layer::Dense, previous_layer_size::Int, current_datatype)
-    if layer.inputs isa InferSize
+    if layer.inputs isa Infer
         return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type)
     else
         return layer

@@ -3,6 +3,7 @@ include("static.jl")
 include("dense.jl")
 include("flatten.jl")
 include("conv.jl")
+include("maxpool.jl")
 
 function parameter_indices(layer, current_offset::Integer)::Vector{UnitRange{Int}}
     parameter_sizes = parameter_array_size(layer)

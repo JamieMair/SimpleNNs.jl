@@ -1,24 +1,4 @@
-# Defines the forward pass of a model
-using LinearAlgebra
-import NNlib
-import NNlibCUDA
-using CUDA
-import CUDA: i32
 
-function forward!(output, layer::Dense, parameters, input)
-    w = reshape(first(parameters), layer.outputs, layer.inputs)
-    if has_bias(layer)
-        b = last(parameters)  # Flat vector of biases
-        output .= b # Automatically broadcast column-wise
-    end
-
-    mul!(output, w, input, true, true)
-
-    if typeof(layer.activation_fn) !== typeof(identity)
-        output .= layer.activation_fn.(output)
-    end
-    nothing
-end
 function forward!(output::AbstractArray, layer::Conv, parameters, input::AbstractArray)
     kernel = kernel_weights(layer, parameters)
     spatial_dims = length(layer.kernel_size)
@@ -159,26 +139,3 @@ function forward!(output::CuArray, layer::Conv, parameters, input::CuArray)
 
     nothing
 end
-
-function forward_inner!(layer_output, layer, current_input)
-    inner_layer = _inner_layer(layer)
-    params = parameters(layer)
-    forward!(layer_output, inner_layer, params, current_input)
-    current_input = layer_output
-    return current_input
-end
-function forward_inner!(layer_output, layer::Flatten, current_input)
-    n_samples = size(current_input, ndims(current_input))
-    next_output = reshape(current_input, layer.output_size..., n_samples)
-    return next_output
-end
-
-forward!(cache::ForwardPassCache, model::Model) = _forward!(cache, model.layers)
-
-@generated function _forward!(cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}) where {N}
-    first_line = :(current_input = cache.input)
-    calls = [:(current_input = forward_inner!(cache.layer_outputs[$i - 1], layers[$i], current_input)) for i in 2:N]
-    Expr(:block, first_line, calls...)
-end
-
-export forward!
