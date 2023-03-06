@@ -1,0 +1,36 @@
+abstract type AbstractLoss end
+struct MSELoss{T<:AbstractVector}
+    targets::T
+end
+struct LogitCrossEntropyLoss{T<:AbstractVector, N}
+    targets::T
+    num_classes::Val{N}
+end
+LogitCrossEntropyLoss(targets::AbstractVector, n::Integer) = LogitCrossEntropyLoss(targets, Val(n))
+
+function pullback!(partials_buffer, inputs, loss::MSELoss)
+    partials_buffer .= inputs .- loss.targets'
+    return sum(partials_buffer) / (2*length(loss.targets))
+end
+function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
+    @assert length(size(inputs)) == 2
+
+    partials_buffer .= exp.(inputs)
+
+    total_loss = zero(eltype(partials_buffer))
+    @inbounds for i in axes(inputs, length(size(inputs)))
+        true_class = loss.targets[i]
+        z = zero(eltype(partials_buffer))
+        @simd for k in 1:N
+            z += partials_buffer[k, i]
+        end
+        for j in axes(inputs, 1)
+            e_y = partials_buffer[j, i]
+            e_y_over_z = ifelse(isfinite(e_y), e_y / z, one(eltype(partials_buffer)))
+            total_loss -= ifelse(j==true_class, log(e_y_over_z), zero(typeof(total_loss)))
+            partials_buffer[j, i] = (e_y_over_z - (j==true_class))
+        end
+    end
+
+    return total_loss
+end

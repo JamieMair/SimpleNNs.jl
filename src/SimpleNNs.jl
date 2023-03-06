@@ -77,7 +77,7 @@ export Static, Dense, Conv, Flatten, chain, sigmoid, relu, tanh_fast, parameters
 
 include("preallocation.jl")
 include("forward.jl")
-include("backprop.jl")
+include("backprop/backprop.jl")
 
 include("gpu.jl")
 
