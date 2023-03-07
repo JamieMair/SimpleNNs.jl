@@ -25,11 +25,12 @@ in_channels = 1
 model = chain(
     Static((img_size..., in_channels)),
     Conv((5,5), 16; activation_fn=relu),
-    Conv((3,3), 4; activation_fn=relu),
+    MaxPool((2,2)),
+    Conv((3,3), 8; activation_fn=relu),
+    MaxPool((4,4)),
     Flatten(),
-    Dense(32, activation_fn=relu),
     Dense(10, activation_fn=identity)
-) |> to_device
+) |> to_device;
 batch_size = num_samples
 input_size = (img_size..., in_channels, batch_size)
 forward_cache = preallocate(model, batch_size)
@@ -38,14 +39,15 @@ set_inputs!(forward_cache, train_features)
 parameters = model.parameters
 randn!(parameters)
 parameters .*= (1/1000)
-forward!(forward_cache, model)
+CUDA.@allocated forward!(forward_cache, model)
 
 gradient_cache = preallocate_grads(model, batch_size)
 
 loss = LogitCrossEntropyLoss(train_labels.+1, 10);
 
 fill!(gradient_cache.parameter_gradients, zero(eltype(gradient_cache.parameter_gradients)))
-backprop!(gradient_cache, forward_cache, model, loss)
+@benchmark backprop!(gradient_cache, forward_cache, model, loss)
+# backprop!(gradient_cache, forward_cache, model, loss)
 
 
 function cross_entropy_loss(outputs, loss::LogitCrossEntropyLoss{T, N}) where {N, T}
@@ -63,7 +65,7 @@ function cross_entropy_loss(outputs::CuArray, loss::LogitCrossEntropyLoss{T, N})
 end
 
 params = parameters
-epochs = Int(4096)
+epochs = Int(2^16)
 losses = zeros(Float32, epochs+1)
 begin
     lr = 0.002 / batch_size
