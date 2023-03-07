@@ -1,9 +1,9 @@
-Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Symbol,NTuple{<:Any, Int}}, K<:Union{Symbol,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}} <: AbstractLayer
+Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Infer,NTuple{<:Any, Int}}, K<:Union{Infer,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}} <: AbstractLayer
     out_channels::Int
     use_bias::Val{B} = Val(true)
     parameter_type::Val{DT} = Val(Float32)
-    in_size::KSIZE = :infer
-    in_channels::K = :infer
+    in_size::KSIZE = Infer()
+    in_channels::K = Infer()
     kernel_size::KS
     activation_fn::T = identity
 end
@@ -11,13 +11,13 @@ Conv(kernel_size::NTuple{N, Int}, out_channels::Int; kwargs...) where {N} = Conv
 datatype(::Conv{DT}) where {DT} = DT
 has_bias(layer) = typeof(layer.use_bias).parameters[begin]
 function inputsize(layer::Conv)
-    layer.in_size isa Symbol && error("Conv layer inputs should be set to a number.")
+    layer.in_size isa Infer && error("Conv layer inputs should be set to a number.")
     return layer.in_size
 end
 
 num_parameters(layer::Conv) = reduce(*, layer.kernel_size) * layer.in_channels * layer.out_channels + (has_bias(layer) ? 1 : 0) * layer.out_channels
 function reconstruct_layer(layer::Conv, previous_layer_size::NTuple{D, Int}, previous_datatype) where {D}
-    if layer.in_channels isa Symbol || layer.in_size isa Symbol
+    if layer.in_channels isa Infer || layer.in_size isa Infer
         spatial_channels = length(layer.kernel_size)
         if spatial_channels != length(previous_layer_size) - 1
             error("Convolution layer with a $(layer.kernel_size) kernel size cannot accept an input layer size of $(previous_layer_size), must have at least one channel.")

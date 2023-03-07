@@ -8,8 +8,7 @@ unimplemented(msg) = error("Unimplemented function: $msg")
 flatten_size(size::Tuple) = reduce(*, size)
 flatten_size(size::Number) = size
 
-include("layers.jl")
-include("activations.jl")
+include("layers/layers.jl")
 
 
 function _map_views(indices::AbstractArray{Q}, array::AbstractArray) where {Q<:UnitRange}
@@ -73,11 +72,11 @@ end
 
 
 # API
-export Static, Dense, Conv, Flatten, chain, sigmoid, relu, tanh_fast, parameters
+export Static, Dense, Conv, MaxPool, Flatten, chain, sigmoid, relu, tanh_fast, parameters
 
-include("preallocation.jl")
-include("forward.jl")
-include("backprop.jl")
+
+include("forward/forward.jl")
+include("backprop/backprop.jl")
 
 include("gpu.jl")
 
