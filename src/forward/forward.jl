@@ -11,6 +11,7 @@ include("conv.jl")
 include("flatten.jl")
 include("maxpool.jl")
 include("gpu.jl")
+include("losses.jl")
 
 function forward_inner!(layer_output, layer::AbstractParameterisedLayer, current_input)
     inner_layer = _inner_layer(layer)
