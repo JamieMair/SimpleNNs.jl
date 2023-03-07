@@ -72,7 +72,7 @@ end
 
 
 # API
-export Static, Dense, Conv, Flatten, chain, sigmoid, relu, tanh_fast, parameters
+export Static, Dense, Conv, MaxPool, Flatten, chain, sigmoid, relu, tanh_fast, parameters
 
 
 include("forward/forward.jl")

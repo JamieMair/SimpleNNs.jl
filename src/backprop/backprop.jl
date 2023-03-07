@@ -1,6 +1,8 @@
 include("preallocation.jl")
 include("gradients.jl")
 
+
+has_combined_backprop_and_pullback(::AbstractLayer) = false
 """
     backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer)
 
@@ -32,39 +34,46 @@ include("losses.jl")
 include("dense.jl")
 include("flatten.jl")
 include("conv.jl")
+include("maxpool.jl")
 
 include("gpu.jl")
 
 function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
-    return _backprop!(backprop_cache, forward_cache, model.layers, loss)
+    #return _backprop!(backprop_cache, forward_cache, model.layers, loss)
 
-    # N = length(model.layers)
-    # current_partial = last(backprop_cache.layer_partials)
-    # total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
-    
-    
-    # for index in (N-1):-1:1
-    #     inputs = if index==1
-    #         forward_cache.input
-    #     else
-    #         forward_cache.layer_outputs[index-1]
-    #     end
+    current_partial = last(backprop_cache.layer_partials)
+    total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
+    layers = model.layers
+    N = length(layers)
+    for i in N-1:-1:1
+        inputs = if i==1
+            forward_cache.input
+        else
+            forward_cache.layer_outputs[i-1]
+        end
 
-    #     outputs = forward_cache.layer_outputs[index]
-    #     gradient_buffer = backprop_cache.parameter_gradient_views[index+1]
-    #     current_layer = model.layers[index+1]
+        outputs = forward_cache.layer_outputs[i]
+        gradient_buffer = backprop_cache.parameter_gradient_views[i+1]
+        current_layer = layers[i+1]
         
-    #     if typeof(current_layer) <: AbstractParameterisedLayer
-    #         current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
-    #     end
+        if has_combined_backprop_and_pullback(current_layer)
+            if i > 1
+                next_partials = backprop_cache.layer_partials[i - 1]
+                current_partial = backprop_and_pullback!(next_partials, current_partial, inputs, outputs, current_layer)
+            end
+        else
+            if typeof(current_layer) <: AbstractParameterisedLayer
+                current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+            end
 
-    #     if index > 1
-    #         next_partials = backprop_cache.layer_partials[index - 1]
-    #         current_partial = pullback!(next_partials, current_partial, current_layer)
-    #     end
-    # end
+            if i > 1
+                next_partials = backprop_cache.layer_partials[i - 1]
+                current_partial = pullback!(next_partials, current_partial, current_layer)
+            end
+        end
+    end
 
-    # return total_loss
+    return total_loss
 end
 
 @generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss) where {N}
@@ -85,13 +94,20 @@ end
             gradient_buffer = backprop_cache.parameter_gradient_views[$i+1]
             current_layer = layers[$i+1]
             
-            if typeof(current_layer) <: AbstractParameterisedLayer
-                current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
-            end
-    
-            if $i > 1
-                next_partials = backprop_cache.layer_partials[$i - 1]
-                current_partial = pullback!(next_partials, current_partial, current_layer)
+            if has_combined_backprop_and_pullback(current_layer)
+                if $i > 1
+                    next_partials = backprop_cache.layer_partials[$i - 1]
+                    backprop_and_pullback!(next_partials, current_partial, inputs, outputs, current_layer)
+                end
+            else
+                if typeof(current_layer) <: AbstractParameterisedLayer
+                    current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
+                end
+        
+                if $i > 1
+                    next_partials = backprop_cache.layer_partials[$i - 1]
+                    current_partial = pullback!(next_partials, current_partial, current_layer)
+                end
             end
         end
     end
