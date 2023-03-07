@@ -95,3 +95,55 @@ function _cross_entropy_pullback_kernel!(total_loss, partials_buffer, targets, :
 
     nothing
 end
+
+function _backward_maxpool_2d(input_partials, output_partials, inputs, outputs, pool_size, stride_size)
+    s_x = convert(Int32, size(outputs, 1))
+    s_y = convert(Int32, size(outputs, 2))
+    channels = convert(Int32, size(outputs, 3))
+    n = convert(Int32, size(outputs, 4))
+
+    w = convert(Int32, pool_size[1])
+    h = convert(Int32, pool_size[2])
+
+    sw = convert(Int32, stride_size[1])
+    sh = convert(Int32, stride_size[2])
+
+    x = threadIdx().x + (blockIdx().x - 1i32) * blockDim().x
+    y = threadIdx().y + (blockIdx().y - 1i32) * blockDim().y
+    i = threadIdx().z + (blockIdx().z - 1i32) * blockDim().z
+
+    @inbounds if x <= s_x && y <= s_y && i <= n
+        ox = (x-1i32)*sw
+        oy = (y-1i32)*sh
+
+        for c in 1i32:channels
+            out_val = outputs[x, y, c, i]
+            for ky in (ox+1i32):(ox+h), kx in (oy+1i32):(oy+w)
+                in_val = inputs[kx, ky, c, i]
+                input_partials[kx, ky, c, i] = ifelse(in_val==out_val, output_partials[x, y, c, i], zero(eltype(input_partials)))
+            end
+        end
+    end
+
+    nothing
+end
+
+function backprop_and_pullback!(input_partials::CuArray, output_partials::CuArray, inputs::CuArray, outputs::CuArray, layer::MaxPool)    
+    pool_size = layer.pool_size
+    stride_size = layer.stride
+
+    if false #length(pool_size)==2
+        # Use custom 2D pooling alg
+        w, h, _, n = size(outputs)
+        x_threads = min(32, w)
+        y_threads = min(32, h)
+        z_threads = min(1024 ÷ x_threads ÷ y_threads, n)
+        num_threads = (x_threads, y_threads, z_threads)
+        num_blocks = (cld(w, x_threads), cld(h, y_threads), cld(n, z_threads))
+
+        @cuda blocks=num_blocks threads=num_threads _backward_maxpool_2d(input_partials, output_partials, inputs, outputs, pool_size, stride_size)
+    else
+        pool_dims = NNlib.PoolDims(size(inputs), pool_size; stride=stride_size)
+        NNlib.∇maxpool!(input_partials, output_partials, outputs, inputs, pool_dims)
+    end
+end
