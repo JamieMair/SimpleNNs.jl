@@ -8,7 +8,7 @@ end
 MaxPool(pool_size::NTuple{N, Int}; kwargs...) where {N} = MaxPool(;pool_size, kwargs...)
 
 function reconstruct_layer(layer::MaxPool, previous_layer_size, current_datatype)
-    if layer.stride isa Infer || layer.input_size isa Infer || layer.output_size isa Infer || layer.DT isa Infer || layer.in_channels isa Infer
+    if layer.stride isa Infer || layer.input_size isa Infer || layer.output_size isa Infer || datatype(layer) isa Infer
         # Default stride is same size as the pool size
         stride = ifelse(layer.stride isa Infer, Tuple(i for i in layer.pool_size), layer.stride)
 

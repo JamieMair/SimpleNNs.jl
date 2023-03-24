@@ -24,8 +24,8 @@ function reconstruct_layer(layer::BatchCrossEntropyLoss, previous_layer_size, cu
     @assert layer.num_classes == previous_layer_size[1] "Expected $(layer.num_classes) but previous output indicates $(previous_layer_size[1])"
 
     if current_datatype != datatype(layer)
-        @warn "Changing datatype of batch cross entropy loss layer to $(current_datatype)."
-        return BatchCrossEntropyLoss(layer.targets, layer.num_classes, Val(current_datatype))
+        @warn "Batch cross entropy loss layer has a datatype of $(datatype(layer)), and will be converted from the previous datatype $(current_datatype)."
+        return layer
     else
         return layer
     end

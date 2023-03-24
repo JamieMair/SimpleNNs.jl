@@ -42,10 +42,12 @@ function chain(layers...)::Model
         # Check consistency of datatypes
         current_datatype = datatype(layer)
         if current_datatype != overall_datatype
+            @warn "Datatypes are mismatched between two adjacent layers (expected $overall_datatype, got $current_datatype)"
             overall_datatype = promote_type(current_datatype, overall_datatype)
-            @warn "Datatypes are mismatched between two adjacent layers (expected $previous_datatype, got $current_datatype)"
-            @warn "Switching to $overall_datatype for the datatype of the parameters."
-            current_datatype = overall_datatype
+            if overall_datatype != current_datatype
+                @warn "Switching to $overall_datatype for the datatype of the parameters."
+                current_datatype = overall_datatype
+            end
         end
 
         # Check consistency of input and output sizes between layers
