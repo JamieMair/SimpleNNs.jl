@@ -17,13 +17,28 @@ end
 function _cross_entropy_loss_batch_forward_kernel!(outputs, inputs, targets)
     j = threadIdx().x + (blockIdx().x - 1i32) * blockDim().x
     n = length(outputs)
+    n_classes = convert(Int32, size(inputs, 1))
+    T_out = eltype(outputs)
     if j <= n
-        z = zero(eltype(outputs))
-        for i in axes(inputs, 1)
-            z += exp(inputs[i, j])
+        z = zero(T_out)
+        max_class = 1i32
+        max_value = typemin(eltype(inputs))
+        for i in 1i32:n_classes
+            input = inputs[i, j]
+            if max_value < input
+                max_class = i
+                max_value = input
+            end
+            # outtype_input = convert(T_out, input)
+            z += exp(convert(T_out, input))
         end
+        # BUG: Does not work if all outputs are large
         true_class = targets[j]
-        outputs[j] = log(z) - inputs[true_class, j]
+        if isinf(z)
+            outputs[1, j] = ifelse(true_class==max_class, zero(eltype(outputs)), typemax(eltype(outputs)))
+        else
+            outputs[1, j] = log(z) - convert(T_out, inputs[true_class, j])
+        end
     end
     nothing
 end
