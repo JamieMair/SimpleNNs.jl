@@ -12,12 +12,12 @@ include("simplenn_utils.jl")
 
 device = :gpu;
 batch_size = 128;
-dataset = load_data(batch_size, device);
+dataset = load_mnist_data(batch_size, device);
 
 img_size = (28,28);
 in_channels = 1;
-model_flux = create_flux_model(img_size, in_channels, device);
-model_simple = create_simple_nn_model(img_size, in_channels, device);
+model_flux = create_flux_mnist_model(img_size, in_channels, device);
+model_simple = create_simple_nn_mnist_model(img_size, in_channels, device);
 randn!(model_simple.parameters);
 model_simple.parameters .*= (1/1000);
 
