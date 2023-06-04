@@ -1,4 +1,6 @@
+using Revise
 using SimpleNNs
+Revise.track(SimpleNNs)
 import SimpleNNs.GPU: gpu
 using ProgressBars
 using CUDA
@@ -46,7 +48,7 @@ loss = MSELoss(outputs)
 
 backprop!(gradient_cache, forward_cache, model, loss)
 
-epochs = Int(5*10^4)
+epochs = Int(5*10^3)
 losses = zeros(Float32, epochs+1)
 begin
     lr = 0.02 / N
