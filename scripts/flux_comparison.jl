@@ -2,11 +2,11 @@ import Flux
 import SimpleNNs
 import SimpleNNs.GPU
 using Random
-using MLDatasets
 using ProgressBars
 import CUDA
 using BenchmarkTools
 
+include("data_utils.jl")
 include("flux_utils.jl")
 include("simplenn_utils.jl")
 
