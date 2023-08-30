@@ -1,16 +1,28 @@
 abstract type AbstractLoss end
-struct MSELoss{T<:AbstractVector}
+
+"""
+    MSELoss(targets)
+
+Expects the targets in the form (`K` x `N`) where `K` is the output dimension (usually 1) and `N` is the batch size.
+"""
+struct MSELoss{T<:AbstractArray}
     targets::T
 end
-struct LogitCrossEntropyLoss{T<:AbstractVector, N}
+
+"""
+    LogitCrossEntropyLoss(targets, num_classes::Int)
+
+Expects the targets in a single vector containg class labels, which have to be between `1` and `num_classes` inclusive.
+"""
+struct LogitCrossEntropyLoss{T<:AbstractArray, N}
     targets::T
     num_classes::Val{N}
 end
 LogitCrossEntropyLoss(targets::AbstractVector, n::Integer) = LogitCrossEntropyLoss(targets, Val(n))
-
+square(x) = x*x
 function pullback!(partials_buffer, inputs, loss::MSELoss)
-    partials_buffer .= inputs .- loss.targets'
-    return sum(partials_buffer) / (2*length(loss.targets))
+    partials_buffer .= inputs .- loss.targets
+    return sum(square, partials_buffer) / (2*length(loss.targets))
 end
 function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
     @assert length(size(inputs)) == 2

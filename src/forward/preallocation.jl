@@ -2,6 +2,12 @@ struct ForwardPassCache{A<:AbstractArray, C}
     input::A
     layer_outputs::C
 end
+
+"""
+    get_outputs(cache::ForwardPassCache)
+
+Gets the last output from the forward pass buffer.
+"""
 get_outputs(cache::ForwardPassCache) = last(cache.layer_outputs)
 import CUDA: zeros as cu_zeros, CuArray
 function zeros_fn(model::Model)
@@ -18,6 +24,14 @@ function _get_preallocation_size(layer, batch_size)
         return 0
     end
 end
+
+"""
+    preallocate(model::Model, batch_size::Integer)
+
+Creates a buffer to store the intermediate layer outputs of a forward pass, along with the input.
+
+The inputs can be set using [`set_inputs!`](@ref) and the outputs can be retrieved using [`get_outputs`](@ref).
+"""
 function preallocate(model::Model, batch_size::Integer)
     (input_layer, network_layers) = Iterators.peel(model.layers)
     input_size = (unbatched_output_size(input_layer)..., batch_size)
@@ -37,6 +51,11 @@ function preallocate(model::Model, batch_size::Integer)
 end
 # TODO: Add preallocate method that takes an input array and uses that to preallocate.
 
+"""
+    set_inputs!(cache::ForwardPassCache, inputs)
+
+Sets the input array in the forward pass cache.
+"""
 function set_inputs!(cache::ForwardPassCache, inputs)
     cache.input .= inputs
 end

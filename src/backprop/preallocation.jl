@@ -3,6 +3,14 @@ struct BackpropagationCache{A<:AbstractArray,B<:AbstractArray,C<:AbstractArray{B
     parameter_gradient_views::C
     layer_partials::D
 end
+
+"""
+preallocate_grads(model::Model, batch_size::Integer)
+
+Creates a buffer to store the intermediate arrays needed for backpropagation.
+
+The gradients can be retrieved from the buffer using [`gradients`](@ref) on the buffer.
+"""
 function preallocate_grads(model::Model, batch_size::Integer)
     (_, network_layers) = Iterators.peel(model.layers)
 
@@ -23,4 +31,13 @@ function preallocate_grads(model::Model, batch_size::Integer)
     end
     # TODO: Switch to tuple and allow for a flatten right at the start
     return BackpropagationCache(parameter_gradients, parameter_gradient_views, Tuple(layer_partials))
+end
+
+"""
+    gradients(cache::BackpropagationCache)
+
+Extracts the gradient array from the backwards pass buffer, filled from use of the [`backprop!`](@ref) function.
+"""
+function gradients(cache::BackpropagationCache)
+    return cache.parameter_gradients
 end

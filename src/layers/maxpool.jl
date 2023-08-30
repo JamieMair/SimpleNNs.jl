@@ -5,6 +5,13 @@ Base.@kwdef struct MaxPool{DT, S1<:NTuple, S2<:Union{Infer, NTuple}, S3<:Union{I
     output_size::S4 = Infer()
     datatype::Val{DT} = Val(Infer())
 end
+"""
+    MaxPool(pool_size::NTuple{N, Int}; kwargs...)
+
+A convolutional max-pool layer with a given kernel size.
+
+This can automatically infer the necessary sizes if specified.
+"""
 MaxPool(pool_size::NTuple{N, Int}; kwargs...) where {N} = MaxPool(;pool_size, kwargs...)
 
 function reconstruct_layer(layer::MaxPool, previous_layer_size, current_datatype)
