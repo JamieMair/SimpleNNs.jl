@@ -18,8 +18,57 @@ function _map_views(indices::AbstractArray{T}, array::AbstractArray) where {Q<:U
     return (x->_map_views(x, array)).(indices)
 end
 
+"""
+    parameters(model::Model)
+
+Returns the array used to store the parameters of the model.
+
+Modifying this array will change the parameters of the model.
+"""
 parameters(model::Model) = model.parameters
 
+"""
+    chain(layers...)
+
+Combines the given layer definitions into a single model and propagates the layer sizes through the network.
+
+The first layer must always be a `Static` layer which specifies the feature size. If this is a simple fully
+connection network, then the first layer should be `Static(nf)` where `nf` is the number of features in your
+input matrix. Do not specify the batch size in this static input.
+
+The default datatype for most layers is `Float32`, but this may be changed. The parameters of the entire model
+must be of the same datatype. This function will create a flat parameter vector for the model which can be
+accessed using the [`parameters`](@ref) function.
+
+# Examples
+
+A simple dense, fully-connected, neural network which has 3 input features:
+```julia
+model = chain(
+    Static(3),
+    Dense(10, activation_fn=tanh),
+    Dense(10, activation_fn=sigmoid),
+    Dense(1, activation_fn=identity),
+);
+```
+
+An example convolutional neural network:
+```julia
+# Image size is (WIDTH, HEIGHT, CHANNELS)
+img_size = (28, 28, 1)
+model = chain(
+    Static(img_size),
+    Conv((5,5), 16; activation_fn=relu),
+    MaxPool((2,2)),
+    Conv((3,3), 8; activation_fn=relu),
+    MaxPool((4,4)),
+    Flatten(),
+    Dense(10, activation_fn=identity)
+)
+```
+
+See also [`Static`](@ref), [`Dense`](@ref), [`Conv`](@ref), [`MaxPool`](@ref), [`Flatten`](@ref) and [`preallocate`](@ref).
+"""
 function chain(layers...)::Model
     (input_layer, network_layers) = Iterators.peel(layers)
     if !(input_layer isa Static)

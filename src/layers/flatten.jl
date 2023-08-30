@@ -1,3 +1,11 @@
+
+"""
+    Flatten()
+
+Flatten the dimensions of the preceeding layer, leaving the batch dimension
+unaffected. The output should be (`k` x `n`) where `k` is the product of the
+non-batch dimensions of the previous layer.
+"""
 Base.@kwdef struct Flatten{DT, S1<:Union{Infer, NTuple},S2<:Union{Infer, Int}} <: AbstractLayer 
     input_size::S1 = Infer()
     output_size::S2 = Infer()

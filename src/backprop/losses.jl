@@ -1,7 +1,19 @@
 abstract type AbstractLoss end
+
+"""
+    MSELoss(targets)
+
+Expects the targets in the form (`K` x `N`) where `K` is the output dimension (usually 1) and `N` is the batch size.
+"""
 struct MSELoss{T<:AbstractArray}
     targets::T
 end
+
+"""
+    LogitCrossEntropyLoss(targets, num_classes::Int)
+
+Expects the targets in a single vector containg class labels, which have to be between `1` and `num_classes` inclusive.
+"""
 struct LogitCrossEntropyLoss{T<:AbstractArray, N}
     targets::T
     num_classes::Val{N}

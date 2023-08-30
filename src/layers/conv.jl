@@ -7,6 +7,20 @@ Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Infer,NTuple{<:Any, Int}}, K<:Uni
     kernel_size::KS
     activation_fn::T = identity
 end
+
+"""
+    Conv(kernel_size::NTuple{N, Int}, out_channels::Int; kwargs...)
+
+A convolutional layer with a given kernel size and specified number of output channels.
+
+This can automatically infer the number of input channels based on the preceeding layers.
+
+# Keyword Arguments
+
+- `use_bias` (default: `Val(true)`) - Whether or not to add a bias vector to the output. Wrapped in a `Val` for optimisation.
+- `activation_fn` (default: `identity`) - A custom activation function. Note that not all functions are supported by backpropagation.
+- `parameter_type` (default: `Val(Float32)`) - The datatype to use for the parameters, wrapped in a `Val` type.
+"""
 Conv(kernel_size::NTuple{N, Int}, out_channels::Int; kwargs...) where {N} = Conv(;kernel_size, out_channels, kwargs...)
 datatype(::Conv{DT}) where {DT} = DT
 has_bias(layer) = typeof(layer.use_bias).parameters[begin]
