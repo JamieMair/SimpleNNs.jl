@@ -24,3 +24,6 @@ function preallocate_grads(model::Model, batch_size::Integer)
     # TODO: Switch to tuple and allow for a flatten right at the start
     return BackpropagationCache(parameter_gradients, parameter_gradient_views, Tuple(layer_partials))
 end
+function gradients(cache::BackpropagationCache)
+    return cache.parameter_gradients
+end

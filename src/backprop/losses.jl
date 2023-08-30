@@ -1,16 +1,16 @@
 abstract type AbstractLoss end
-struct MSELoss{T<:AbstractVector}
+struct MSELoss{T<:AbstractArray}
     targets::T
 end
-struct LogitCrossEntropyLoss{T<:AbstractVector, N}
+struct LogitCrossEntropyLoss{T<:AbstractArray, N}
     targets::T
     num_classes::Val{N}
 end
 LogitCrossEntropyLoss(targets::AbstractVector, n::Integer) = LogitCrossEntropyLoss(targets, Val(n))
-
+square(x) = x*x
 function pullback!(partials_buffer, inputs, loss::MSELoss)
-    partials_buffer .= inputs .- loss.targets'
-    return sum(partials_buffer) / (2*length(loss.targets))
+    partials_buffer .= inputs .- loss.targets
+    return sum(square, partials_buffer) / (2*length(loss.targets))
 end
 function pullback!(partials_buffer, inputs, loss::LogitCrossEntropyLoss{T, N}) where {T, N}
     @assert length(size(inputs)) == 2

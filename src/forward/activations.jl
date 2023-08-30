@@ -1,5 +1,5 @@
 # Activation functions
-sigmoid(x) = inv(one(typeof(x) + exp(-x)))
+sigmoid(x) = inv(one(typeof(x)) + exp(-x))
 relu(x) = ifelse(x>=zero(typeof(x)), x, zero(typeof(x)))
 # tanh_fast from NNlib
 @inline function tanh_fast(x::Float32)

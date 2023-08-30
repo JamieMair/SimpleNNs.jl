@@ -16,6 +16,12 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Getting Started" => "getting_started.md",
+        "Examples" => Any[
+            "MNIST" => "mnist.md"
+        ],
+        "API" => "api.md",
+        "Index" => "function_index.md",
     ],
 )
 
