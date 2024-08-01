@@ -27,7 +27,7 @@ function output_fn(x)
     offset = convert(typeof(x), 1.0)
     return x*sin(x * freq - offset) + offset
 end
-outputs = reshape(output_fn.(inputs) |> to_device, :)
+outputs = reshape(output_fn.(inputs) |> to_device, 1, :)
 # Preallocate Model
 forward_cache = preallocate(model, N)
 gradient_cache = preallocate_grads(model, N)
@@ -79,7 +79,7 @@ end
 using Plots
 begin
     flat_inputs = reshape(inputs, :)
-    plt = plot(Array(flat_inputs), Array(outputs), label="True", linestyle=:solid, lw=3)
+    plt = plot(Array(flat_inputs), Array(reshape(outputs, :)), label="True", linestyle=:solid, lw=3)
     plot!(plt, Array(flat_inputs), Array(reshape(model_outputs, :)), label="Pred", legend=:topleft, alpha=0.8, linestyle=:dash, lw=3)
 
     return plt

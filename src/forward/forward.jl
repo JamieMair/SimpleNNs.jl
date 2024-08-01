@@ -1,7 +1,6 @@
 # Defines the forward pass of a model
 using LinearAlgebra
 import NNlib
-import NNlibCUDA
 using CUDA
 import CUDA: i32
 include("preallocation.jl")

@@ -1,5 +1,4 @@
 import NNlib
-import NNlibCUDA
 
 function pullback!(input_partials::CuArray, output_partials::CuArray, layer::ParameterisedLayer{T}) where {T<:Conv}
     params = parameters(layer)
@@ -26,7 +25,7 @@ function backprop!(partials_buffer::CuArray, gradient_buffer, inputs::CuArray, o
         k_biases = kernel_biases(layer, gradient_buffer)
         channel_dim = ndims(outputs) - 1
         k_biases = reshape(k_biases, ntuple(i->i==channel_dim ? size(outputs, i) : 1, ndims(outputs)))
-        NNlibCUDA.∇conv_bias!(k_biases, partials_buffer)
+        NNlib.∇conv_bias!(k_biases, partials_buffer)
     end
 
     return partials_buffer
