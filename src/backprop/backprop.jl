@@ -38,9 +38,7 @@ include("maxpool.jl")
 
 include("gpu.jl")
 
-function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
-    #return _backprop!(backprop_cache, forward_cache, model.layers, loss)
-
+function _deprecated_backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
     current_partial = last(backprop_cache.layer_partials)
     total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
     layers = model.layers
@@ -76,6 +74,10 @@ function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardP
     return total_loss
 end
 
+function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
+    return _backprop!(backprop_cache, forward_cache, model.layers, loss)
+end
+
 @generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss) where {N}
     setup_block = quote 
         current_partial = last(backprop_cache.layer_partials)
@@ -97,13 +99,13 @@ end
             if has_combined_backprop_and_pullback(current_layer)
                 if $i > 1
                     next_partials = backprop_cache.layer_partials[$i - 1]
-                    backprop_and_pullback!(next_partials, current_partial, inputs, outputs, current_layer)
+                    current_partial = backprop_and_pullback!(next_partials, current_partial, inputs, outputs, current_layer)
                 end
             else
                 if typeof(current_layer) <: AbstractParameterisedLayer
                     current_partial = backprop!(current_partial, gradient_buffer, inputs, outputs, _inner_layer(current_layer))
                 end
-        
+    
                 if $i > 1
                     next_partials = backprop_cache.layer_partials[$i - 1]
                     current_partial = pullback!(next_partials, current_partial, current_layer)

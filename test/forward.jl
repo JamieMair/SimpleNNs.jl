@@ -25,3 +25,21 @@
     
     @test isapprox(expected_outputs, outputs)
 end
+
+@testitem "Forward pass no allocations" begin
+    model = chain(
+        Static(4), # Layer 1
+        Dense(16, activation_fn=SimpleNNs.relu), # Layer 2
+        Dense(16, activation_fn=SimpleNNs.relu), # Layer 3
+        Dense(2), # Layer 4
+    );    
+    inputs = rand(Float32, 4, 32)
+    # Preallocate Model
+    forward_cache = preallocate(model, size(inputs, 2))
+    set_inputs!(forward_cache, inputs) # Copies inputs into the cache
+    
+    # Dry run for compilation
+    forward!(forward_cache, model)
+    num_allocations = @allocations forward!(forward_cache, model)
+    @test num_allocations == 0
+end
