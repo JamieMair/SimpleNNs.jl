@@ -60,4 +60,18 @@ function set_inputs!(cache::ForwardPassCache, inputs)
     cache.input .= inputs
 end
 
+function _truncate_batch(a::AbstractArray, batch_size::Integer)
+    nd = ndims(a)
+    @assert size(a, nd) >= batch_size "Cannot truncate an to a size larger than is preallocated. Tried to truncate batch of array sized $(size(a)) to $(batch_size)"
+    return view(a, (Colon() for _ in 1:(nd-1))..., 1:batch_size)
+end
+
+
+function truncate(cache::ForwardPassCache, batch_size)
+    input_view = _truncate_batch(cache.input, batch_size)
+    outputs = map(x->_truncate_batch(x, batch_size), cache.layer_outputs)
+
+    return ForwardPassCache(input_view, outputs)
+end
+
 export preallocate, set_inputs!, get_outputs
