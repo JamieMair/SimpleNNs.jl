@@ -9,6 +9,10 @@ struct MSELoss{T<:AbstractArray}
     targets::T
 end
 
+function truncate(l::MSELoss, batch_size)
+    return MSELoss(_truncate_batch(l.targets, batch_size))
+end
+
 """
     LogitCrossEntropyLoss(targets, num_classes::Int)
 
@@ -17,6 +21,9 @@ Expects the targets in a single vector containg class labels, which have to be b
 struct LogitCrossEntropyLoss{T<:AbstractArray, N}
     targets::T
     num_classes::Val{N}
+end
+function truncate(l::LogitCrossEntropyLoss, batch_size)
+    return LogitCrossEntropyLoss(_truncate_batch(l.targets, batch_size), l.num_classes)
 end
 LogitCrossEntropyLoss(targets::AbstractVector, n::Integer) = LogitCrossEntropyLoss(targets, Val(n))
 square(x) = x*x

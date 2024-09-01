@@ -33,6 +33,13 @@ function preallocate_grads(model::Model, batch_size::Integer)
     return BackpropagationCache(parameter_gradients, parameter_gradient_views, Tuple(layer_partials))
 end
 
+
+function truncate(cache::BackpropagationCache, batch_size)
+    partials = map(x->_truncate_batch(x, batch_size), cache.layer_partials)
+
+    return BackpropagationCache(cache.parameter_gradients, cache.parameter_gradient_views, partials)
+end
+
 """
     gradients(cache::BackpropagationCache)
 
