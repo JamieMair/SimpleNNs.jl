@@ -103,3 +103,21 @@ f(x) = 3x^2 - 2x + 1
 @autograd f AbstractFloat
 actual_df(x) = 6*x - 2
 @test autograd(f, 1.0, 2.0) == 1 * actual_df(2)
+
+@btime autograd(f, 1.0, 2.0)
+
+using Enzyme
+
+x = [2.0];
+bx = [0.0];
+y = [0.0];
+by = [1.0];
+
+function test_f!(x, y)
+    y .= f.(x)
+    nothing
+end
+
+@btime Enzyme.autodiff(Reverse, test_f!, Duplicated(x, bx), Duplicated(y, by));
+
+@test bx[begin] == 1 * actual_df(x[begin])
