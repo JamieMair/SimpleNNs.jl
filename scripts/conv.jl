@@ -1,4 +1,5 @@
 using CUDA
+import cuDNN, NNlib
 using SimpleNNs
 using Random
 using MLDatasets
@@ -7,7 +8,7 @@ import SimpleNNs: gpu
 using BenchmarkTools
 
 
-use_gpu = true
+use_gpu = false
 to_device = use_gpu ? gpu : identity
 dataset = MNIST(:train);
 images, labels = dataset[:];
@@ -40,7 +41,7 @@ set_inputs!(forward_cache, train_features)
 parameters = model.parameters
 randn!(parameters)
 parameters .*= (1/1000)
-@benchmark forward!(forward_cache, model)
+@benchmark forward!($forward_cache, $model)
 
 gradient_cache = preallocate_grads(model, batch_size)
 
