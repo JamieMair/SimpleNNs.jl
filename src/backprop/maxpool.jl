@@ -12,7 +12,7 @@ function backprop_and_pullback!(input_partials, output_partials, inputs, outputs
         for c in 1:channels
             for o_i in output_dimensions
                 out_val = outputs[o_i, c, n]
-                offset = CartesianIndex(Tuple((i-1)*sx for (i, sx) in zip(Tuple(o_i), Tuple(stride_dims))))
+                offset = compute_offset(o_i, stride_dims)
                 for k_i in kernel_indices
                     in_val = inputs[k_i+offset, c, n]
                     input_partials[k_i+offset, c, n] += (in_val==out_val) * output_partials[o_i, c, n]

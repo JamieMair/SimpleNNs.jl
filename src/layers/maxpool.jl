@@ -13,7 +13,12 @@ A convolutional max-pool layer with a given kernel size.
 This can automatically infer the necessary sizes if specified.
 """
 MaxPool(pool_size::NTuple{N, Int}; kwargs...) where {N} = MaxPool(;pool_size, kwargs...)
-
+@generated function compute_offset(o_i::CartesianIndex{N}, stride_dims::CartesianIndex{N}) where N
+    args = [:((o_i[$i] - 1) * stride_dims[$i]) for i in 1:N]
+    return quote
+        CartesianIndex($(args...))
+    end
+end
 function reconstruct_layer(layer::MaxPool, previous_layer_size, current_datatype)
     if layer.stride isa Infer || layer.input_size isa Infer || layer.output_size isa Infer || datatype(layer) isa Infer
         # Default stride is same size as the pool size
