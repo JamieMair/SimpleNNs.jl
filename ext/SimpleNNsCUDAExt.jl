@@ -4,6 +4,7 @@ module SimpleNNsCUDAExt
 if isdefined(Base, :get_extension)
     using CUDA
     import CUDA: i32
+    import cuDNN
     import NNlib
     using SimpleNNs
     import SimpleNNs: Model, num_parameters, parameter_indices, _map_views, ParameterisedLayer, _inner_layer, AbstractParameterisedLayer
@@ -15,6 +16,7 @@ else
     using ..CUDA
     import ..CUDA: i32
     using ..SimpleNNs
+    import ..cuDNN
     import ..NNlib
 
     import ..SimpleNNs: Model, num_parameters, parameter_indices, _map_views, ParameterisedLayer, _inner_layer, AbstractParameterisedLayer

@@ -136,7 +136,9 @@ function __init__()
     @static if !isdefined(Base, :get_extension)
         @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" begin
             @require NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd" begin
-                include("../ext/SimpleNNsCUDAExt.jl")
+                @require cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd" begin
+                    include("../ext/SimpleNNsCUDAExt.jl")
+                end
             end
         end
     end
