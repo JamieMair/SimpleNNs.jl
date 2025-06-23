@@ -94,9 +94,9 @@ loss = MSELoss(targets)
 
 # Initialise parameters
 Random.seed!(42)
-params = parameters(model)
-randn!(params)
-params .*= 0.1f0
+ps = parameters(model)
+randn!(ps)
+ps .*= 0.1f0
 
 # Training loop
 for epoch in 1:1000
@@ -105,7 +105,7 @@ for epoch in 1:1000
     
     # Simple gradient descent
     gradients(backward_cache) .*= -0.01f0
-    params .+= gradients(backward_cache)
+    ps .+= gradients(backward_cache)
     
     if epoch % 100 == 0
         println("Epoch $epoch, Loss: $total_loss")
@@ -161,9 +161,9 @@ for epoch in 1:100
     total_loss = backprop!(backward_cache, forward_cache, model, loss)
     
     # Apply gradients (simplified)
-    params = parameters(model)
+    ps = parameters(model)
     grads = gradients(backward_cache)
-    params .-= 0.001f0 .* grads
+    ps .-= 0.001f0 .* grads
 end
 ```
 
