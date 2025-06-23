@@ -116,4 +116,4 @@ ylabel!("y")
 plt
 ```
 
-To see an example using convolution layers and GPU training, see the [MNIST](@ref) training example.
+To see an example using convolution layers and GPU training, see the [MNIST](./mnist.md) training example.

@@ -69,6 +69,7 @@ function _truncate_batch(a::AbstractArray, batch_size::Integer)
 end
 
 
+
 function truncate(cache::ForwardPassCache, batch_size)
     input_view = _truncate_batch(cache.input, batch_size)
     outputs = map(x->_truncate_batch(x, batch_size), cache.layer_outputs)

@@ -15,7 +15,7 @@ instead write dy/dx = g(y). This can be done for the 3 major functions.
 Whenever `y` is used below, assume this is a function of the output, not the input.
 """
 activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T} = activation_gradient_fn(Val(T))
-activation_gradient_fn(c) = activation_gradient_fn(Val(typeof(c.activation_fn)))
+activation_gradient_fn(c::AbstractLayer) = activation_gradient_fn(Val(typeof(c.activation_fn)))
 function activation_gradient_fn(::Val{T}) where {T}
     if T === typeof(identity)
         return one

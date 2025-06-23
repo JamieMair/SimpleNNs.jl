@@ -20,6 +20,10 @@ makedocs(;
         "Examples" => Any[
             "MNIST" => "mnist.md"
         ],
+        "Advanced Topics" => Any[
+            "GPU Usage" => "gpu_usage.md",
+            "Advanced Usage" => "advanced_usage.md"
+        ],
         "API" => "api.md",
         "Index" => "function_index.md",
     ],
