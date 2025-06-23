@@ -14,7 +14,12 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
+[extensions]
+SimpleNNsCUDAExt = ["CUDA", "NNlib"]
+
 [compat]
+CUDA = "3, 4, 5"
+NNlib = "0.9.30"
 julia = "1.6"
 
 [extras]

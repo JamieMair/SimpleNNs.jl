@@ -1,11 +1,11 @@
 using CUDA
 using SimpleNNs
-import SimpleNNs.GPU: gpu
+import SimpleNNs: gpu
 using Random
 import BSON: @load, @save
 using MLDatasets
 
-@load "results/model.bson" model parameters losses confusion_matrix
+# @load "results/model.bson" model parameters losses confusion_matrix
 
 dataset = MNIST(:train);
 images, labels = dataset[:];

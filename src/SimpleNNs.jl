@@ -131,4 +131,17 @@ include("backprop/backprop.jl")
 
 include("gpu.jl")
 
+# Backwards compatibility for older Julia versions
+function __init__()
+    @static if !isdefined(Base, :get_extension)
+        @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" begin
+            @require NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd" begin
+                include("../ext/SimpleNNsCUDAExt.jl")
+            end
+        end
+    end
+end
+
+export gpu
+
 end

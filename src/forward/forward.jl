@@ -1,15 +1,11 @@
 # Defines the forward pass of a model
 using LinearAlgebra
-import NNlib
-using CUDA
-import CUDA: i32
 include("preallocation.jl")
 include("activations.jl")
 include("dense.jl")
 include("conv.jl")
 include("flatten.jl")
 include("maxpool.jl")
-include("gpu.jl")
 include("losses.jl")
 
 function forward_inner!(layer_output, layer::AbstractParameterisedLayer, current_input)
