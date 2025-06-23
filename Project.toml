@@ -21,8 +21,6 @@ NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SimpleNNsCUDAExt = ["CUDA", "NNlib", "cuDNN"]
 
 [compat]
-CUDA = "3, 4, 5"
-NNlib = "0.9.30"
 julia = "1.7"
 
 [extras]
