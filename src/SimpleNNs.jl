@@ -1,6 +1,6 @@
 module SimpleNNs
 using Logging
-
+using Requires
 # Utility
 unimplemented() = error("Unimplemented function")
 unimplemented(msg) = error("Unimplemented function: $msg")
