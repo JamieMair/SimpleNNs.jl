@@ -194,8 +194,38 @@ set_inputs!(gpu_cache, gpu_inputs)
 
 # Benchmark
 println("CPU Performance:")
-@btime forward!($cpu_cache, $cpu_model)
+@benchmark forward!($cpu_cache, $cpu_model)
 
 println("GPU Performance:")
-@btime CUDA.@sync forward!($gpu_cache, $gpu_model)
+@benchmark CUDA.@sync forward!($gpu_cache, $gpu_model)
 ```
+
+
+On my machine, I see the following results
+```
+CPU Benchmark:
+BenchmarkTools.Trial: 10000 samples with 1 evaluation per sample.
+ Range (min … max):   96.800 μs … 386.100 μs  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     105.900 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   111.648 μs ±  18.544 μs  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  ▁▄▆██▇▇▆▆▆▅▄▄▃▃▃▂▂▁▂▂▁▂▁▁▁▁       ▁                           ▂
+  ████████████████████████████████▇████▇█▇██▇▅▇▆▆▅▆▅▃▅▅▄▅▃▅▅▅▄▃ █
+  96.8 μs       Histogram: log(frequency) by time        190 μs <
+
+ Memory estimate: 0 bytes, allocs estimate: 0.
+
+GPU Benchmark:
+BenchmarkTools.Trial: 10000 samples with 1 evaluation per sample.
+ Range (min … max):  67.000 μs … 619.800 μs  ┊ GC (min … max): 0.00% … 0.00%
+ Time  (median):     85.700 μs               ┊ GC (median):    0.00%
+ Time  (mean ± σ):   96.932 μs ±  42.793 μs  ┊ GC (mean ± σ):  0.00% ± 0.00%
+
+  ▁▁  █▄
+  ███████▇▇▆▅▅▅▅▃▃▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▁▁▂▂▂▁▂
+  67 μs           Histogram: frequency by time          275 μs <
+
+ Memory estimate: 9.58 KiB, allocs estimate: 342.
+```
+
+You can see these small sizes actually show the GPU and CPU having similar performance. Keep this in mind when you are choosing which device to run your small-medium size neural networks on.
