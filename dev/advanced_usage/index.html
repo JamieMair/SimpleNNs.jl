@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Advanced Usage · SimpleNNs.jl</title><meta name="title" content="Advanced Usage · SimpleNNs.jl"/><meta property="og:title" content="Advanced Usage · SimpleNNs.jl"/><meta property="twitter:title" content="Advanced Usage · SimpleNNs.jl"/><meta name="description" content="Documentation for SimpleNNs.jl."/><meta property="og:description" content="Documentation for SimpleNNs.jl."/><meta property="twitter:description" content="Documentation for SimpleNNs.jl."/><meta property="og:url" content="https://JamieMair.github.io/SimpleNNs.jl/advanced_usage/"/><meta property="twitter:url" content="https://JamieMair.github.io/SimpleNNs.jl/advanced_usage/"/><link rel="canonical" href="https://JamieMair.github.io/SimpleNNs.jl/advanced_usage/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">SimpleNNs.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getting_started/">Getting Started</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../mnist/">MNIST</a></li></ul></li><li><span class="tocitem">Advanced Topics</span><ul><li><a class="tocitem" href="../gpu_usage/">GPU Usage</a></li><li class="is-active"><a class="tocitem" href>Advanced Usage</a><ul class="internal"><li><a class="tocitem" href="#Custom-Training-Loops"><span>Custom Training Loops</span></a></li><li><a class="tocitem" href="#Memory-Optimisation"><span>Memory Optimisation</span></a></li><li><a class="tocitem" href="#Performance-Profiling"><span>Performance Profiling</span></a></li><li><a class="tocitem" href="#Custom-Activation-Functions"><span>Custom Activation Functions</span></a></li><li><a class="tocitem" href="#Model-Serialisation"><span>Model Serialisation</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../api/">API</a></li><li><a class="tocitem" href="../function_index/">Index</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced Topics</a></li><li class="is-active"><a href>Advanced Usage</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Advanced Usage</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JamieMair/SimpleNNs.jl/blob/main/docs/src/advanced_usage.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Advanced-Usage"><a class="docs-heading-anchor" href="#Advanced-Usage">Advanced Usage</a><a id="Advanced-Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-Usage" title="Permalink"></a></h1><p>This section covers advanced topics and optimisation techniques for SimpleNNs.jl.</p><h2 id="Custom-Training-Loops"><a class="docs-heading-anchor" href="#Custom-Training-Loops">Custom Training Loops</a><a id="Custom-Training-Loops-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-Training-Loops" title="Permalink"></a></h2><h3 id="Function-Approximation"><a class="docs-heading-anchor" href="#Function-Approximation">Function Approximation</a><a id="Function-Approximation-1"></a><a class="docs-heading-anchor-permalink" href="#Function-Approximation" title="Permalink"></a></h3><p>Here&#39;s a simple example of fitting a non-linear function, using a custom training loop and optimiser (in this case a custom implementation of ADAM):</p><pre><code class="language-julia hljs">using SimpleNNs
+using Random
+using ProgressBars
+
+# Define a non-linear target function
+function target_function(x)
+    freq = 4.0
+    offset = 1.0
+    return x * sin(x * freq - offset) + offset
+end
+
+# Create training data
+N = 512
+inputs = Float32.(reshape(collect(LinRange(-1.0, 1.0, N)), 1, N))
+outputs = Float32.(reshape(target_function.(inputs), 1, :))
+
+# Create a deeper network
+model = chain(
+    Static(1),
+    Dense(16, activation_fn=tanh_fast),
+    Dense(16, activation_fn=tanh_fast),
+    Dense(16, activation_fn=tanh_fast),
+    Dense(1, activation_fn=identity)
+)
+
+# Initialise parameters
+Random.seed!(42)
+ps = SimpleNNs.parameters(model)
+randn!(ps)
+ps .*= 0.1f0
+
+# Preallocate
+forward_cache = preallocate(model, N)
+backward_cache = preallocate_grads(model, N)
+set_inputs!(forward_cache, inputs)
+
+# Loss function
+loss = MSELoss(outputs)
+
+# ADAM optimiser parameters
+epochs = 5000
+lr = 0.02f0 / N
+β₁ = 0.9f0
+β₂ = 0.999f0
+ε = 1f-8
+
+# ADAM state
+m = similar(ps)
+v = similar(ps)
+fill!(m, 0.0f0)
+fill!(v, 0.0f0)
+
+losses = Float32[]
+
+for epoch in ProgressBar(1:epochs)
+    # Forward pass
+    forward!(forward_cache, model)
+    
+    # Compute loss
+    current_loss = backprop!(backward_cache, forward_cache, model, loss)
+    push!(losses, current_loss)
+    
+    # ADAM update
+    grads = gradients(backward_cache)
+    m .= β₁ .* m .+ (1 - β₁) .* grads
+    v .= β₂ .* v .+ (1 - β₂) .* grads .^ 2
+    
+    m_corrected = m ./ (1 - β₁^epoch)
+    v_corrected = v ./ (1 - β₂^epoch)
+    
+    ps .-= lr .* m_corrected ./ (sqrt.(v_corrected) .+ ε)
+end
+
+# Final prediction
+forward!(forward_cache, model)
+predictions = get_outputs(forward_cache)
+
+println(&quot;Final loss: &quot;, losses[end])</code></pre><h3 id="Batch-Processing-and-Data-Loading"><a class="docs-heading-anchor" href="#Batch-Processing-and-Data-Loading">Batch Processing and Data Loading</a><a id="Batch-Processing-and-Data-Loading-1"></a><a class="docs-heading-anchor-permalink" href="#Batch-Processing-and-Data-Loading" title="Permalink"></a></h3><p>For larger datasets, you&#39;ll need efficient batch processing:</p><pre><code class="language-julia hljs">using SimpleNNs
+using MLDatasets
+using Random
+using ProgressBars
+
+struct DataLoader{T,S}
+    features::T
+    labels::S
+    batch_size::Int
+    indices::Vector{Int}
+    n_samples::Int
+end
+
+function DataLoader(features, labels, batch_size::Int)
+    n_samples = size(features)[end]
+    indices = collect(1:batch_size)
+    return DataLoader(features, labels, batch_size, indices, n_samples)
+end
+
+function next_batch!(loader::DataLoader)
+    # Randomly sample new indices
+    shuffle!(loader.indices)
+    return (
+        view(loader.features, ntuple(i -&gt; :, ndims(loader.features)-1)..., loader.indices),
+        view(loader.labels, loader.indices)
+    )
+end
+
+# Example with MNIST
+dataset = MNIST(:train)
+images, labels = dataset[:]
+images = reshape(images, 28, 28, 1, size(images, 3))
+labels = labels .+ 1  # 1-indexed
+
+# Create data loader
+batch_size = 128
+loader = DataLoader(images, labels, batch_size)
+
+# Create model
+model = chain(
+    Static((28, 28, 1)),
+    Conv((5,5), 16, activation_fn=relu),
+    MaxPool((2,2)),
+    Conv((3,3), 8, activation_fn=relu),
+    MaxPool((4,4)),
+    Flatten(),
+    Dense(10, activation_fn=identity)
+)
+
+# Preallocate
+forward_cache = preallocate(model, batch_size)
+backward_cache = preallocate_grads(model, batch_size)
+
+# Training loop with batch processing
+for epoch in ProgressBar(1:100)
+    batch_features, batch_labels = next_batch!(loader)
+    
+    set_inputs!(forward_cache, batch_features)
+    loss = LogitCrossEntropyLoss(batch_labels, 10)
+    
+    forward!(forward_cache, model)
+    total_loss = backprop!(backward_cache, forward_cache, model, loss)
+    
+    # Apply gradients (simplified SGD)
+    ps = SimpleNNs.parameters(model)
+    grads = gradients(backward_cache)
+    ps .-= 0.001f0 .* grads
+end</code></pre><h2 id="Memory-Optimisation"><a class="docs-heading-anchor" href="#Memory-Optimisation">Memory Optimisation</a><a id="Memory-Optimisation-1"></a><a class="docs-heading-anchor-permalink" href="#Memory-Optimisation" title="Permalink"></a></h2><h3 id="Cache-Truncation"><a class="docs-heading-anchor" href="#Cache-Truncation">Cache Truncation</a><a id="Cache-Truncation-1"></a><a class="docs-heading-anchor-permalink" href="#Cache-Truncation" title="Permalink"></a></h3><p>When your actual batch size is smaller than your preallocated cache, use truncation:</p><pre><code class="language-julia hljs"># Preallocate for maximum batch size
+max_batch_size = 256
+forward_cache = preallocate(model, max_batch_size)
+backward_cache = preallocate_grads(model, max_batch_size)
+
+# For smaller batches, truncate the cache
+actual_batch_size = 64
+truncated_forward = SimpleNNs.truncate(forward_cache, actual_batch_size)
+truncated_backward = SimpleNNs.truncate(backward_cache, actual_batch_size)
+
+# Use truncated caches
+set_inputs!(truncated_forward, small_batch_data)
+forward!(truncated_forward, model)
+backprop!(truncated_backward, truncated_forward, model, loss)</code></pre><h2 id="Performance-Profiling"><a class="docs-heading-anchor" href="#Performance-Profiling">Performance Profiling</a><a id="Performance-Profiling-1"></a><a class="docs-heading-anchor-permalink" href="#Performance-Profiling" title="Permalink"></a></h2><h3 id="Allocation-Tracking"><a class="docs-heading-anchor" href="#Allocation-Tracking">Allocation Tracking</a><a id="Allocation-Tracking-1"></a><a class="docs-heading-anchor-permalink" href="#Allocation-Tracking" title="Permalink"></a></h3><p>SimpleNNs.jl is designed for zero-allocation (or close to zero) inference. Some minor allocations may slip through, depending on the version of Julia you are currently running. An example of testing the allocations is below:</p><pre><code class="language-julia hljs">using SimpleNNs
+
+model = chain(Static(10), Dense(32, activation_fn=relu), Dense(1))
+forward_cache = preallocate(model, 64)
+backward_cache = preallocate_grads(model, 64)
+
+inputs = randn(Float32, 10, 64)
+targets = randn(Float32, 1, 64)
+loss = MSELoss(targets)
+
+set_inputs!(forward_cache, inputs)
+
+# Call once to remove allocations from JIT compilation
+forward!(forward_cache, model)
+# Check allocations in forward pass
+forward_allocs = @allocations forward!(forward_cache, model)
+println(&quot;Forward allocations: $forward_allocs&quot;)
+
+# Again, call once to avoid measuring JIT
+backprop!(backward_cache, forward_cache, model, loss)
+# Check allocations in backward pass
+backward_allocs = @allocations backprop!(backward_cache, forward_cache, model, loss)
+println(&quot;Backward allocations: $backward_allocs&quot;)
+
+# Should be 0 or very low for optimal performance
+@assert forward_allocs &lt;= 1
+@assert backward_allocs &lt;= 1</code></pre><h2 id="Custom-Activation-Functions"><a class="docs-heading-anchor" href="#Custom-Activation-Functions">Custom Activation Functions</a><a id="Custom-Activation-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-Activation-Functions" title="Permalink"></a></h2><p>While SimpleNNs.jl has built-in activation functions, you can define custom ones:</p><pre><code class="language-julia hljs"># Custom activation function
+function swish(x)
+    return x * sigmoid(x)
+end
+
+# Custom gradient (if needed for backward pass) (input is the output of the activation)
+function swish_gradient(x)
+    s = sigmoid(x)
+    return s * (1 + x * (1 - s))
+end
+# Link the gradient fn to the activation fn
+SimpleNNs.activation_gradient_fn(::typeof(swish)) = swish_gradient
+
+model = chain(
+    Static(10),
+    Dense(32, activation_fn=swish),  # Custom activation
+    Dense(1, activation_fn=identity)
+)
+
+# ... Model should now work with forward! and backprop!</code></pre><div class="admonition is-warning" id="Custom-Activations-3246128c11299a70"><header class="admonition-header">Custom Activations<a class="admonition-anchor" href="#Custom-Activations-3246128c11299a70" title="Permalink"></a></header><div class="admonition-body"><p>Custom activation functions work for forward passes, but you may need to implement custom backward pass logic for training.</p></div></div><h2 id="Model-Serialisation"><a class="docs-heading-anchor" href="#Model-Serialisation">Model Serialisation</a><a id="Model-Serialisation-1"></a><a class="docs-heading-anchor-permalink" href="#Model-Serialisation" title="Permalink"></a></h2><p>Save and load trained models:</p><pre><code class="language-julia hljs">using JLD2
+
+# Save model parameters
+@save &quot;model_params.jld2&quot; params=parameters(model)
+
+# Load model parameters
+@load &quot;model_params.jld2&quot; params
+new_model = create_model()  # Recreate same architecture
+parameters(new_model) .= params</code></pre><p>This advanced usage guide should help you get the most out of SimpleNNs.jl for complex applications and high-performance computing scenarios.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../gpu_usage/">« GPU Usage</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Monday 23 June 2025 16:58">Monday 23 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
