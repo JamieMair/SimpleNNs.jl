@@ -15,8 +15,7 @@ These packages must be loaded **before** using SimpleNNs GPU functionality:
 
 ```julia
 using CUDA
-using cuDNN
-using NNlib
+import cuDNN, NNlib # Need to load CUDA, cuDNN and NNlib to enable GPU functionality in SimpleNNs
 using SimpleNNs
 ```
 
@@ -62,7 +61,8 @@ gpu_data = CUDA.cu(cpu_data)
 Here's a complete example showing GPU training:
 
 ```julia
-using CUDA, cuDNN, NNlib
+using CUDA
+import cuDNN, NNlib
 using SimpleNNs
 using Random
 
