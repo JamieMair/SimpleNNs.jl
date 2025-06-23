@@ -1,9 +1,10 @@
+using CUDA
 using SimpleNNs
 using Random
 using MLDatasets
 using ProgressBars
-using CUDA
-import SimpleNNs.GPU: gpu
+import SimpleNNs: gpu
+using BenchmarkTools
 
 
 use_gpu = true
@@ -39,14 +40,14 @@ set_inputs!(forward_cache, train_features)
 parameters = model.parameters
 randn!(parameters)
 parameters .*= (1/1000)
-CUDA.@allocated forward!(forward_cache, model)
+@benchmark forward!(forward_cache, model)
 
 gradient_cache = preallocate_grads(model, batch_size)
 
 loss = LogitCrossEntropyLoss(train_labels.+1, 10);
 
 fill!(gradient_cache.parameter_gradients, zero(eltype(gradient_cache.parameter_gradients)))
-@benchmark backprop!(gradient_cache, forward_cache, model, loss)
+@benchmark backprop!($gradient_cache, $forward_cache, $model, $loss)
 # backprop!(gradient_cache, forward_cache, model, loss)
 
 
@@ -55,13 +56,10 @@ function cross_entropy_loss(outputs, loss::LogitCrossEntropyLoss{T, N}) where {N
     p_y = e_y ./ sum(e_y, dims=1)
     
     l = zero(eltype(outputs))
-    for i in axes(e_y, length(size(e_y)))
+    CUDA.@allowscalar for i in axes(e_y, length(size(e_y)))
         l -= log(p_y[loss.targets[i], i])
     end
     return l
-end
-function cross_entropy_loss(outputs::CuArray, loss::LogitCrossEntropyLoss{T, N}) where {N, T}
-    return cross_entropy_loss(Array(outputs), LogitCrossEntropyLoss(Array(loss.targets), N))
 end
 
 params = parameters

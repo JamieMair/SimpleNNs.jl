@@ -36,8 +36,6 @@ include("flatten.jl")
 include("conv.jl")
 include("maxpool.jl")
 
-include("gpu.jl")
-
 function _deprecated_backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, model::Model, loss)
     current_partial = last(backprop_cache.layer_partials)
     total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)

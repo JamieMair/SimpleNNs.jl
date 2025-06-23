@@ -12,7 +12,7 @@ function forward_inner!(output::AbstractArray, layer::MaxPool, input::AbstractAr
     @inbounds for n in axes(output, length(size(output)))
         for c in 1:channels
             for o_i in output_dimensions
-                offset = CartesianIndex(Tuple((i-1)*sx for (i, sx) in zip(Tuple(o_i), Tuple(stride_dims))))
+                offset = compute_offset(o_i, stride_dims)
                 s = typemin(eltype(output))
                 @simd for k_i in kernel_indices
                     s = pool_fn(s, input[k_i+offset, c, n])

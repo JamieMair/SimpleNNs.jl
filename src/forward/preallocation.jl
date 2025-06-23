@@ -9,10 +9,12 @@ end
 Gets the last output from the forward pass buffer.
 """
 get_outputs(cache::ForwardPassCache) = last(cache.layer_outputs)
-import CUDA: zeros as cu_zeros, CuArray
+
 function zeros_fn(model::Model)
-    if typeof(model.parameters) <: CuArray
-        return cu_zeros
+    # Check if CUDA extension is loaded and parameters are on GPU
+    ext = Base.get_extension(@__MODULE__, :SimpleNNsCUDAExt)
+    if !isnothing(ext) && isdefined(ext, :CuArray) && typeof(model.parameters) <: ext.CuArray
+        return ext.CUDA.zeros
     else
         return zeros
     end
