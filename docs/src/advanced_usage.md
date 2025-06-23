@@ -239,15 +239,15 @@ function swish_gradient(x)
     return s * (1 + x * (1 - s))
 end
 # Link the gradient fn to the activation fn
-# TODO: Test this
-SimpleNNs.activation_gradient_fn(::typeof{swish}) = swish_gradient
+SimpleNNs.activation_gradient_fn(::typeof(swish)) = swish_gradient
 
-# Use in model (forward pass only)
 model = chain(
     Static(10),
     Dense(32, activation_fn=swish),  # Custom activation
     Dense(1, activation_fn=identity)
 )
+
+# ... Model should now work with forward! and backprop!
 ```
 
 !!! warning "Custom Activations"
