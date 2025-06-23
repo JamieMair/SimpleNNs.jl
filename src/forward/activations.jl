@@ -1,7 +1,44 @@
 # Activation functions
+"""
+    sigmoid(x)
+
+Logistic sigmoid activation function.
+
+Computes the sigmoid function: 1 / (1 + exp(-x)).
+
+# Arguments
+x: Input value
+# Returns
+Output in range (0, 1)
+"""
 sigmoid(x) = inv(one(typeof(x)) + exp(-x))
+"""
+    relu(x)
+
+Rectified linear unit activation function.
+
+Computes max(0, x)
+
+# Arguments
+x: Input value
+# Returns
+Output in range (0, ∞)
+"""
 relu(x) = ifelse(x>=zero(typeof(x)), x, zero(typeof(x)))
 # tanh_fast from NNlib
+
+"""
+    tanh_fast(x)
+
+Fast hyperbolic tangent activation function.
+
+Computes an optimized version of the hyperbolic tangent function. This may use approximations for better performance compared to the standard tan for Float32 and Float64.
+
+# Arguments
+x: Input scalar
+# Returns
+Output in range (-1, 1)
+"""
 @inline function tanh_fast(x::Float32)
     x2 = abs2(x)
     n = evalpoly(x2, (1.0f0, 0.1346604f0, 0.0035974074f0, 2.2332108f-5, 1.587199f-8))

@@ -14,20 +14,10 @@ instead write dy/dx = g(y). This can be done for the 3 major functions.
 
 Whenever `y` is used below, assume this is a function of the output, not the input.
 """
-activation_gradient_fn(::Dense{DT, K, T}) where {DT, K, T} = activation_gradient_fn(Val(T))
-activation_gradient_fn(c) = activation_gradient_fn(Val(typeof(c.activation_fn)))
-function activation_gradient_fn(::Val{T}) where {T}
-    if T === typeof(identity)
-        return one
-    elseif T === typeof(tanh)
-        return tanh_derivative
-    elseif T === typeof(relu)
-        return relu_derivative
-    elseif T === typeof(sigmoid)
-        return sigmoid_derivative
-    elseif T === typeof(tanh_fast)
-        return tanh_derivative
-    else
-        return unimplemented()
-    end
-end
+activation_gradient_fn(c) = activation_gradient_fn(c.activation_fn)
+activation_gradient_fn(::typeof(identity)) = one
+activation_gradient_fn(::typeof(tanh)) = tanh_derivative
+activation_gradient_fn(::typeof(tanh_fast)) = tanh_derivative
+activation_gradient_fn(::typeof(sigmoid)) = sigmoid_derivative
+activation_gradient_fn(::typeof(relu)) = relu_derivative
+activation_gradient_fn(::Function) = unimplemented()

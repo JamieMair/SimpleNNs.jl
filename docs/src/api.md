@@ -1,5 +1,5 @@
 # API
 
 ```@autodocs
-Modules = [SimpleNNs, SimpleNNs.GPU]
+Modules = [SimpleNNs]
 ```
