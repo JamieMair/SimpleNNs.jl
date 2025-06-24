@@ -40,16 +40,7 @@ loss = MSELoss(outputs)
 
 # ADAM optimiser parameters
 epochs = 5000
-lr = 0.02f0 / N
-β₁ = 0.9f0
-β₂ = 0.999f0
-ε = 1f-8
-
-# ADAM state
-m = similar(ps)
-v = similar(ps)
-fill!(m, 0.0f0)
-fill!(v, 0.0f0)
+adam_opt = AdamOptimiser(backward_cache.parameter_gradients; lr=0.02f0/N, beta_1=0.9f0, beta_2=0.999f0)
 
 losses = Float32[]
 
@@ -61,15 +52,9 @@ for epoch in ProgressBar(1:epochs)
     current_loss = backprop!(backward_cache, forward_cache, model, loss)
     push!(losses, current_loss)
     
-    # ADAM update
+    # Apply optimiser update
     grads = gradients(backward_cache)
-    m .= β₁ .* m .+ (1 - β₁) .* grads
-    v .= β₂ .* v .+ (1 - β₂) .* grads .^ 2
-    
-    m_corrected = m ./ (1 - β₁^epoch)
-    v_corrected = v ./ (1 - β₂^epoch)
-    
-    ps .-= lr .* m_corrected ./ (sqrt.(v_corrected) .+ ε)
+    update!(ps, grads, adam_opt)
 end
 
 # Final prediction
@@ -209,4 +194,47 @@ model = chain(
 # Load model parameters
 @load &quot;model_params.jld2&quot; params
 new_model = create_model()  # Recreate same architecture
-parameters(new_model) .= params</code></pre><p>This advanced usage guide should help you get the most out of SimpleNNs.jl for complex applications and high-performance computing scenarios.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../gpu_usage/">« GPU Usage</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Monday 23 June 2025 16:58">Monday 23 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+parameters(new_model) .= params</code></pre><p>This advanced usage guide should help you get the most out of SimpleNNs.jl for complex applications and high-performance computing scenarios.</p><h3 id="Optimiser-Comparison"><a class="docs-heading-anchor" href="#Optimiser-Comparison">Optimiser Comparison</a><a id="Optimiser-Comparison-1"></a><a class="docs-heading-anchor-permalink" href="#Optimiser-Comparison" title="Permalink"></a></h3><p>You can easily compare different optimisers:</p><pre><code class="language-julia hljs">using SimpleNNs
+using Random
+
+# Create test problem
+model = chain(Static(2), Dense(10, activation_fn=tanh), Dense(1))
+batch_size = 32
+forward_cache = preallocate(model, batch_size)
+backward_cache = preallocate_grads(model, batch_size)
+
+inputs = randn(Float32, 2, batch_size)
+targets = randn(Float32, 1, batch_size)
+set_inputs!(forward_cache, inputs)
+loss = MSELoss(targets)
+
+# Test different optimisers
+optimisers = [
+    (&quot;SGD&quot;, SGDOptimiser(backward_cache.parameter_gradients; lr=0.01f0)),
+    (&quot;SGD+Momentum&quot;, SGDOptimiser(backward_cache.parameter_gradients; lr=0.01f0, momentum=0.9f0)),
+    (&quot;RMSProp&quot;, RMSPropOptimiser(backward_cache.parameter_gradients; lr=0.001f0)),
+    (&quot;Adam&quot;, AdamOptimiser(backward_cache.parameter_gradients; lr=0.001f0))
+]
+
+for (name, opt) in optimisers
+    # Reset model parameters
+    Random.seed!(42)
+    params = parameters(model)
+    randn!(params)
+    params .*= 0.1f0
+    reset!(opt)
+    
+    println(&quot;Training with $name:&quot;)
+    for epoch in 1:100
+        forward!(forward_cache, model)
+        current_loss = backprop!(backward_cache, forward_cache, model, loss)
+        
+        grads = gradients(backward_cache)
+        update!(params, grads, opt)
+        
+        if epoch % 25 == 0
+            println(&quot;  Epoch $epoch: Loss = $(round(current_loss, digits=6))&quot;)
+        end
+    end
+    println()
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../gpu_usage/">« GPU Usage</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Tuesday 24 June 2025 17:17">Tuesday 24 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

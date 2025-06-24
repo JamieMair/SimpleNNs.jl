@@ -58,9 +58,8 @@ params = parameters(model)
 randn!(params)
 params .*= 0.05f0  # Small initial weights
 
-# Setup ADAM optimiser using Optimisers.jl
-import Optimisers
-optimiser = Optimisers.setup(Optimisers.Adam(learning_rate), params)
+# Setup Adam optimiser using built-in SimpleNNs optimiser
+optimiser = AdamOptimiser(gradient_buffer.parameter_gradients; lr=learning_rate)
 
 println(&quot;Training setup complete&quot;)</code></pre><h2 id="Training-Loop"><a class="docs-heading-anchor" href="#Training-Loop">Training Loop</a><a id="Training-Loop-1"></a><a class="docs-heading-anchor-permalink" href="#Training-Loop" title="Permalink"></a></h2><p>Now we&#39;ll implement the training loop with mini-batch stochastic gradient descent:</p><pre><code class="language-julia hljs">using ProgressBars
 
@@ -94,7 +93,7 @@ for epoch in ProgressBar(1:epochs)
     
     # Extract gradients and apply optimiser
     grads = gradients(gradient_buffer)
-    Optimisers.update!(optimiser, params, grads)
+    update!(params, grads, optimiser)
     
     # Print progress every 100 epochs
     if epoch % 100 == 0
@@ -195,4 +194,4 @@ end
 
 # Show some random predictions
 random_indices = rand(1:n_test, 16)
-plot_digit_predictions(test_images, cpu_test_labels, cpu_predictions, random_indices)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getting_started/">« Getting Started</a><a class="docs-footer-nextpage" href="../gpu_usage/">GPU Usage »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Monday 23 June 2025 16:58">Monday 23 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot_digit_predictions(test_images, cpu_test_labels, cpu_predictions, random_indices)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getting_started/">« Getting Started</a><a class="docs-footer-nextpage" href="../gpu_usage/">GPU Usage »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Tuesday 24 June 2025 17:17">Tuesday 24 June 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
