@@ -105,9 +105,8 @@ params = parameters(model)
 randn!(params)
 params .*= 0.05f0  # Small initial weights
 
-# Setup ADAM optimiser using Optimisers.jl
-import Optimisers
-optimiser = Optimisers.setup(Optimisers.Adam(learning_rate), params)
+# Setup Adam optimiser using built-in SimpleNNs optimiser
+optimiser = AdamOptimiser(gradient_buffer.parameter_gradients; lr=learning_rate)
 
 println("Training setup complete")
 ```
@@ -149,7 +148,7 @@ for epoch in ProgressBar(1:epochs)
     
     # Extract gradients and apply optimiser
     grads = gradients(gradient_buffer)
-    Optimisers.update!(optimiser, params, grads)
+    update!(params, grads, optimiser)
     
     # Print progress every 100 epochs
     if epoch % 100 == 0

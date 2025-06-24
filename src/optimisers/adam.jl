@@ -49,7 +49,7 @@ function update!(parameters, gradients, opt::AdamOptimiser)
     denom_2 = inv(_one - opt.beta_2 ^ opt.epoch)
     _eps = convert(eltype(m), 1e-6)
 
-    parameters .+= opt.lr .* (m .* denom_1) ./ (sqrt.(v.*denom_2) .+ _eps)
+    parameters .-= opt.lr .* (m .* denom_1) ./ (sqrt.(v.*denom_2) .+ _eps)
 
     opt.epoch += 1
     nothing

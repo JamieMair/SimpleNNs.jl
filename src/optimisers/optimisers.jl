@@ -1,5 +1,5 @@
 export reset!, update!
-export AdamOptimiser
+export AdamOptimiser, SGDOptimiser, RMSPropOptimiser
 
 abstract type AbstractOptimiser end
 
@@ -27,3 +27,5 @@ function update!(parameters, gradients, opt::AbstractOptimiser)
 end
 
 include("adam.jl")
+include("sgd.jl")
+include("rmsprop.jl")

@@ -98,14 +98,17 @@ ps = parameters(model)
 randn!(ps)
 ps .*= 0.1f0
 
+# Setup optimiser
+optimiser = AdamOptimiser(backward_cache.parameter_gradients; lr=0.01f0)
+
 # Training loop
 for epoch in 1:1000
     forward!(forward_cache, model)
     total_loss = backprop!(backward_cache, forward_cache, model, loss)
     
-    # Simple gradient descent
-    gradients(backward_cache) .*= -0.01f0
-    ps .+= gradients(backward_cache)
+    # Apply optimiser
+    grads = gradients(backward_cache)
+    update!(ps, grads, optimiser)
     
     if epoch % 100 == 0
         println("Epoch $epoch, Loss: $total_loss")
@@ -163,7 +166,12 @@ for epoch in 1:100
     # Apply gradients (simplified)
     ps = parameters(model)
     grads = gradients(backward_cache)
-    ps .-= 0.001f0 .* grads
+    
+    # Use built-in SGD optimiser for demonstration
+    if !@isdefined(sgd_opt)
+        sgd_opt = SGDOptimiser(grads; lr=0.001f0, momentum=0.9f0)
+    end
+    update!(ps, grads, sgd_opt)
 end
 ```
 

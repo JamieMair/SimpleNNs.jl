@@ -16,6 +16,7 @@ export MSELoss, LogitCrossEntropyLoss
 export forward!, preallocate, preallocate_grads, set_inputs!, get_outputs, backprop!
 export truncate
 export gpu
+export AdamOptimiser, SGDOptimiser, RMSPropOptimiser, reset!, update!
 
 
 # Backwards compatibility for older Julia versions
