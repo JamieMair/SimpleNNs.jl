@@ -75,12 +75,11 @@ gradient_buffer = preallocate_grads(model, batch_size);
 nothing # hide
 ```
 
-Now we have all the ingredients we need to write a simple training script, making use of `Optimisers.jl`.
+Now we have all the ingredients we need to write a simple training script, making use of the built-in optimisers.
 ```@example 1
-import Optimisers
+# Setup Adam optimiser
+optimiser = AdamOptimiser(gradient_buffer.parameter_gradients; lr=0.01f0)
 
-lr = 0.01
-opt = Optimisers.setup(Optimisers.Adam(lr), params)
 epochs = 1000
 losses = zeros(Float32, epochs)
 for i in 1:epochs
@@ -88,7 +87,7 @@ for i in 1:epochs
     losses[i] = backprop!(gradient_buffer, forward_buffer, model, loss)
     grads = gradients(gradient_buffer) # extract the gradient vector
     # Apply the optimiser
-    Optimisers.update!(opt, params, grads)
+    update!(params, grads, optimiser)
 end
 
 nothing # hide

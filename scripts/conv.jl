@@ -67,13 +67,9 @@ params = parameters
 epochs = Int(2^16)
 losses = zeros(Float32, epochs+1)
 begin
-    lr = 0.002 / batch_size
-    beta_1 = 0.9f0
-    beta_2 = 0.999f0
-    m = similar(gradient_cache.parameter_gradients)
-    v = similar(gradient_cache.parameter_gradients)
-    fill!(m, 0.0)
-    fill!(v, 0.0)
+    # Use built-in Adam optimiser
+    opt = AdamOptimiser(gradient_cache.parameter_gradients; lr=0.002f0/batch_size, beta_1=0.9f0, beta_2=0.999f0)
+    
     indices = collect(1:batch_size)
     N_images = length(labels)
     images = reshape(images, img_size..., 1, :)
@@ -81,12 +77,11 @@ begin
         forward!(forward_cache, model)
         model_outputs = get_outputs(forward_cache)
         losses[e] = backprop!(gradient_cache, forward_cache, model, loss)
-        m .= beta_1 .* m + (1-beta_1) .* gradient_cache.parameter_gradients
-        v .= beta_1 .* v + (1-beta_2) .* gradient_cache.parameter_gradients .^ 2
-        denom_1 = inv(1 - beta_1 ^ e)
-        denom_2 = inv(1 - beta_2 ^ e)
-        eps = convert(Float32, 1e-8)
-        params .-= lr .* (m .* denom_1) ./ (sqrt.(v.*denom_2) .+ eps)
+        
+        # Use optimiser for parameter updates
+        grads = gradients(gradient_cache)
+        update!(params, grads, opt)
+        
         # Shift to the next batch
         indices .= ((indices .+ (batch_size - 1)) .% N_images) .+ 1
         next_images = view(images, (1:d for d in img_size)..., 1:1, indices)

@@ -50,16 +50,7 @@ loss = MSELoss(outputs)
 
 # ADAM optimiser parameters
 epochs = 5000
-lr = 0.02f0 / N
-β₁ = 0.9f0
-β₂ = 0.999f0
-ε = 1f-8
-
-# ADAM state
-m = similar(ps)
-v = similar(ps)
-fill!(m, 0.0f0)
-fill!(v, 0.0f0)
+adam_opt = AdamOptimiser(backward_cache.parameter_gradients; lr=0.02f0/N, beta_1=0.9f0, beta_2=0.999f0)
 
 losses = Float32[]
 
@@ -71,15 +62,9 @@ for epoch in ProgressBar(1:epochs)
     current_loss = backprop!(backward_cache, forward_cache, model, loss)
     push!(losses, current_loss)
     
-    # ADAM update
+    # Apply optimiser update
     grads = gradients(backward_cache)
-    m .= β₁ .* m .+ (1 - β₁) .* grads
-    v .= β₂ .* v .+ (1 - β₂) .* grads .^ 2
-    
-    m_corrected = m ./ (1 - β₁^epoch)
-    v_corrected = v ./ (1 - β₂^epoch)
-    
-    ps .-= lr .* m_corrected ./ (sqrt.(v_corrected) .+ ε)
+    update!(ps, grads, adam_opt)
 end
 
 # Final prediction
@@ -270,3 +255,54 @@ parameters(new_model) .= params
 ```
 
 This advanced usage guide should help you get the most out of SimpleNNs.jl for complex applications and high-performance computing scenarios.
+
+### Optimiser Comparison
+
+You can easily compare different optimisers:
+
+```julia
+using SimpleNNs
+using Random
+
+# Create test problem
+model = chain(Static(2), Dense(10, activation_fn=tanh), Dense(1))
+batch_size = 32
+forward_cache = preallocate(model, batch_size)
+backward_cache = preallocate_grads(model, batch_size)
+
+inputs = randn(Float32, 2, batch_size)
+targets = randn(Float32, 1, batch_size)
+set_inputs!(forward_cache, inputs)
+loss = MSELoss(targets)
+
+# Test different optimisers
+optimisers = [
+    ("SGD", SGDOptimiser(backward_cache.parameter_gradients; lr=0.01f0)),
+    ("SGD+Momentum", SGDOptimiser(backward_cache.parameter_gradients; lr=0.01f0, momentum=0.9f0)),
+    ("RMSProp", RMSPropOptimiser(backward_cache.parameter_gradients; lr=0.001f0)),
+    ("Adam", AdamOptimiser(backward_cache.parameter_gradients; lr=0.001f0))
+]
+
+for (name, opt) in optimisers
+    # Reset model parameters
+    Random.seed!(42)
+    params = parameters(model)
+    randn!(params)
+    params .*= 0.1f0
+    reset!(opt)
+    
+    println("Training with $name:")
+    for epoch in 1:100
+        forward!(forward_cache, model)
+        current_loss = backprop!(backward_cache, forward_cache, model, loss)
+        
+        grads = gradients(backward_cache)
+        update!(params, grads, opt)
+        
+        if epoch % 25 == 0
+            println("  Epoch $epoch: Loss = $(round(current_loss, digits=6))")
+        end
+    end
+    println()
+end
+```

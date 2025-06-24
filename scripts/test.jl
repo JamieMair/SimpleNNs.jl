@@ -51,24 +51,18 @@ backprop!(gradient_cache, forward_cache, model, loss)
 epochs = Int(5*10^3)
 losses = zeros(Float32, epochs+1)
 begin
-    lr = 0.02 / N
-    beta_1 = 0.9f0
-    beta_2 = 0.999f0
-    m = similar(gradient_cache.parameter_gradients)
-    v = similar(gradient_cache.parameter_gradients)
-    fill!(m, 0.0)
-    fill!(v, 0.0)
+    # Use built-in Adam optimiser
+    opt = AdamOptimiser(gradient_cache.parameter_gradients; lr=0.02f0/N, beta_1=0.9f0, beta_2=0.999f0)
+    
     for e in ProgressBar(1:epochs)    
         forward!(forward_cache, model)
         model_outputs = get_outputs(forward_cache)
         losses[e] = mse(outputs, model_outputs)
         backprop!(gradient_cache, forward_cache, model, loss)
-        m .= beta_1 .* m + (1-beta_1) .* gradient_cache.parameter_gradients
-        v .= beta_1 .* v + (1-beta_2) .* gradient_cache.parameter_gradients .^ 2
-        denom_1 = inv(1 - beta_1 ^ e)
-        denom_2 = inv(1 - beta_2 ^ e)
-        eps = convert(Float32, 1e-8)
-        params .-= lr .* (m .* denom_1) ./ (sqrt.(v.*denom_2) .+ eps)
+        
+        # Use optimiser for parameter updates
+        grads = gradients(gradient_cache)
+        update!(params, grads, opt)
     end
     forward!(forward_cache, model)
     model_outputs = get_outputs(forward_cache)
