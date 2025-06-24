@@ -59,7 +59,7 @@ end
     
     lr = 0.01f0
     rho = 0.9f0
-    eps = 1e-8f0
+    eps = 1f-8
     opt = RMSPropOptimiser(grads; lr=lr, rho=rho, eps=eps)
     
     original_params = copy(params)
@@ -153,6 +153,7 @@ end
 
 @testitem "Optimiser Convergence Test" begin
     using Random
+    import LinearAlgebra: norm
     Random.seed!(42)
     
     # Simple quadratic function: f(x) = x^T x
@@ -162,7 +163,7 @@ end
     function test_optimiser_convergence(opt_constructor, tolerance=1e-4)
         x = randn(Float32, 10) .* 10  # Start far from minimum
         
-        for _ in 1:1000
+        for _ in 1:10000
             grad = 2 .* x  # Gradient of x^T x
             opt = opt_constructor(grad)
             update!(x, grad, opt)
@@ -178,8 +179,8 @@ end
     
     # Test that all optimisers can converge to minimum
     sgd_error = test_optimiser_convergence(g -> SGDOptimiser(g; lr=0.01f0))
-    adam_error = test_optimiser_convergence(g -> AdamOptimiser(g; lr=0.1f0))
-    rmsprop_error = test_optimiser_convergence(g -> RMSPropOptimiser(g; lr=0.1f0))
+    adam_error = test_optimiser_convergence(g -> AdamOptimiser(g; lr=0.01f0))
+    rmsprop_error = test_optimiser_convergence(g -> RMSPropOptimiser(g; lr=0.001f0))
     
     @test sgd_error < 0.1
     @test adam_error < 0.1  

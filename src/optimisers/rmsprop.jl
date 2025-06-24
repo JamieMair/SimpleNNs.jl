@@ -53,10 +53,10 @@ function update!(parameters, gradients, opt::RMSPropOptimiser)
     _one = one(eltype(v))
     
     # Update exponential moving average of squared gradients
-    v .= opt.rho .* v .+ (_one - opt.rho) .* gradients .* gradients
+    v .= opt.rho .* v .+ (_one - opt.rho) .* (gradients .* gradients)
     
-    # Update parameters
-    parameters .-= opt.lr .* gradients ./ (sqrt.(v) .+ opt.eps)
+    # Update parameters - note the parentheses ensure correct order of operations
+    parameters .-= (opt.lr ./ (sqrt.(v .+ opt.eps))) .* gradients
     
     nothing
 end

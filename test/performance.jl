@@ -89,6 +89,9 @@ end
     forward_cache = preallocate(model, full_batch_size)
     backward_cache = preallocate_grads(model, full_batch_size)
     
+    # Run the truncations to avoid picking up extra allocations in JIT
+    SimpleNNs.truncate(forward_cache, small_batch_size)
+    SimpleNNs.truncate(backward_cache, small_batch_size)
     # Test truncation creates no allocations
     truncate_allocs = @allocations SimpleNNs.truncate(forward_cache, small_batch_size)
     @test truncate_allocs <= 1
