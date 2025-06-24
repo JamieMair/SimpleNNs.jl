@@ -55,7 +55,7 @@ end
 
 @testitem "Custom activation gradients" begin
     using Random
-
+    Random.seed!(42)
     # Custom activation function
     function swish(x)
         return x * sigmoid(x)
