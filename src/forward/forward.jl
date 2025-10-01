@@ -60,7 +60,8 @@ See also: [`preallocate`](@ref), [`set_inputs!`](@ref), [`get_outputs`](@ref)
 """
 forward!(cache::ForwardPassCache, model::Model) = _forward!(cache, model.layers)
 
-@generated function _forward!(cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}) where {N}
+@generated function _forward!(cache::ForwardPassCache, layers::L) where {L}
+    N = fieldcount(L)
     first_line = :(current_input = cache.input)
     calls = [:(current_input = forward_inner!(cache.layer_outputs[$i - 1], layers[$i], current_input)) for i in 2:N]
     Expr(:block, first_line, calls...)
