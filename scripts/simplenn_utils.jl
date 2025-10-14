@@ -10,7 +10,7 @@ function create_simple_nn_mnist_model(img_size, in_channels, device::Symbol)
         SimpleNNs.Dense(10, activation_fn=SimpleNNs.identity)
     )
     if device == :gpu
-        return model |> SimpleNNs.GPU.gpu
+        return model |> SimpleNNs.gpu
     else
         return model
     end

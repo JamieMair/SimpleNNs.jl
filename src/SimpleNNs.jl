@@ -17,7 +17,11 @@ export forward!, preallocate, preallocate_grads, set_inputs!, get_outputs, backp
 export truncate
 export gpu
 export AdamOptimiser, SGDOptimiser, RMSPropOptimiser, reset!, update!
+export enable_gpu
 
+function enable_gpu()
+    @eval Main import CUDA, NNlib, cuDNN
+end
 
 # Backwards compatibility for older Julia versions
 function __init__()
