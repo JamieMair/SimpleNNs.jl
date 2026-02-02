@@ -76,11 +76,13 @@ function backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardP
     return _backprop!(backprop_cache, forward_cache, model.layers, loss)
 end
 
-@generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::Tuple{Vararg{<:Any,N}}, loss) where {N}
+@generated function _backprop!(backprop_cache::BackpropagationCache, forward_cache::ForwardPassCache, layers::L, loss) where {L}
     setup_block = quote 
         current_partial = last(backprop_cache.layer_partials)
         total_loss = pullback!(current_partial, last(forward_cache.layer_outputs), loss)
     end
+
+    N = fieldcount(L)
     
     layer_blocks = map((N-1):-1:1) do i
         quote

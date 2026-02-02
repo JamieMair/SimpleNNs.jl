@@ -64,8 +64,8 @@ end
 
 function _truncate_batch(a::AbstractArray, batch_size::Integer)
     nd = ndims(a)
-    @assert size(a, nd) >= batch_size "Cannot truncate an to a size larger than is preallocated. Tried to truncate batch of array sized $(size(a)) to $(batch_size)"
-    return view(a, (Colon() for _ in 1:(nd-1))..., 1:batch_size)
+    @assert size(a, nd) >= batch_size "Cannot truncate to a size larger than is preallocated. Tried to truncate batch of array sized $(size(a)) to $(batch_size)"
+    return view(a, (Colon() for _ in 1:(nd-1))..., Base.OneTo(batch_size))
 end
 
 
