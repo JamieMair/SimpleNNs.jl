@@ -7,8 +7,7 @@ function forward!(output, layer::Dense, parameters, input)
     else
         mul!(output, w, input)
     end
-
-
+ 
     if typeof(layer.activation_fn) !== typeof(identity)
         output .= layer.activation_fn.(output)
     end

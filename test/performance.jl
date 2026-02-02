@@ -25,11 +25,11 @@
     
     # Test forward pass allocations
     forward_allocs = @allocations forward!(forward_cache, model)
-    @test forward_allocs <= 1
+    @test forward_allocs == 0
     
     # Test backward pass allocations
     backward_allocs = @allocations backprop!(backward_cache, forward_cache, model, loss)
-    @test backward_allocs <= 1
+    @test backward_allocs == 0
 end
 
 @testitem "Convolutional Network Performance" begin
@@ -62,11 +62,11 @@ end
     
     # Test forward pass allocations
     forward_allocs = @allocations forward!(forward_cache, model)
-    @test forward_allocs <= 1
+    @test forward_allocs == 0
     
     # Test backward pass allocations  
     backward_allocs = @allocations backprop!(backward_cache, forward_cache, model, loss)
-    @test backward_allocs <= 2
+    @test backward_allocs == 0
 end
 
 @testitem "Cache Truncation Performance" begin
@@ -92,10 +92,10 @@ end
     # Run the truncations to avoid picking up extra allocations in JIT
     SimpleNNs.truncate(forward_cache, small_batch_size)
     SimpleNNs.truncate(backward_cache, small_batch_size)
-    # Test truncation creates no allocations
+    # Test truncation creates minimal allocations (1 is usually unavoidable - maybe compiler could get it eventually)
     truncate_allocs = @allocations SimpleNNs.truncate(forward_cache, small_batch_size)
     @test truncate_allocs <= 1
     
     truncate_back_allocs = @allocations SimpleNNs.truncate(backward_cache, small_batch_size)
-    @test truncate_back_allocs <= 1
+    @test truncate_back_allocs <=1 
 end
