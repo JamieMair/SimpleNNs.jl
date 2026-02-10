@@ -33,4 +33,5 @@ makedocs(;
 deploydocs(;
     repo="github.com/JamieMair/SimpleNNs.jl",
     devbranch="main",
+    versions=["stable" => "v^", "v#.#", "dev" => "dev"],
 )

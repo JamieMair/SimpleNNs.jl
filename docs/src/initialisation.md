@@ -215,15 +215,3 @@ initialise!(model)
 ```
 
 Each call to `initialise!` generates new random weights according to each layer's initialisation scheme.
-
-## API Reference
-
-```@docs
-initialise!
-GlorotNormal
-GlorotUniform
-HeNormal
-HeUniform
-LeCunNormal
-Zeros
-```
