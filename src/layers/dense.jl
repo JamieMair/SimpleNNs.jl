@@ -1,9 +1,10 @@
-Base.@kwdef struct Dense{DT<:Real, K<:Union{Infer, Int}, T<:Function, B} <: AbstractLayer
+Base.@kwdef struct Dense{DT<:Real, K<:Union{Infer, Int}, T<:Function, B, I<:Initialiser} <: AbstractLayer
     outputs::Int
     inputs::K = Infer()
     use_bias::Val{B} = Val(true)
     activation_fn::T = identity
     parameter_type::Val{DT} = Val(Float32)
+    init::I = GlorotNormal()
 end
 
 """
@@ -19,6 +20,7 @@ from the rest of the chain when constructing a model.
 - `activation_fn` (default: `identity`) - A custom activation function. Note that not all functions are supported by backpropagation.
 - `parameter_type` (default: `Val(Float32)`) - The datatype to use for the parameters, wrapped in a `Val` type.
 - `inputs` (default: `Infer()`) - Specify the number of inputs, or infer them from the rest of the model.
+- `init` (default: `GlorotNormal()`) - Weight initialisation scheme. See [`Initialiser`](@ref) for available options.
 """
 Dense(outputs::Integer; kwargs...) = Dense(;outputs=outputs, kwargs...)
 
@@ -48,7 +50,7 @@ function biases(layer::ParameterisedLayer{T, Q}) where {T<:Dense, Q}
 end
 function reconstruct_layer(layer::Dense, previous_layer_size::Int, current_datatype)
     if layer.inputs isa Infer
-        return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type)
+        return Dense(layer.outputs, previous_layer_size, layer.use_bias, layer.activation_fn, layer.parameter_type, layer.init)
     else
         return layer
     end

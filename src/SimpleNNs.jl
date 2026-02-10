@@ -2,6 +2,7 @@ module SimpleNNs
 using Logging
 using Requires
 
+include("initialisers.jl")
 include("layers/layers.jl")
 include("utils.jl")
 include("chain.jl")
@@ -10,6 +11,34 @@ include("backprop/backprop.jl")
 include("gpu.jl")
 include("optimisers/optimisers.jl")
 
+
+"""
+    initialise!(model::Model)
+
+Initialise the parameters of a model according to each layer's initialisation scheme.
+
+This function walks through all layers in the model and initialises their weights
+and biases according to the initialisation method specified in each layer's `init` field.
+
+# Examples
+```julia
+model = chain(
+    Static(10),
+    Dense(64, activation_fn=relu, init=HeNormal()),
+    Dense(10, activation_fn=identity, init=GlorotNormal())
+)
+initialise!(model)
+```
+
+See also: [`GlorotUniform`](@ref), [`GlorotNormal`](@ref), [`HeNormal`](@ref), [`HeUniform`](@ref), [`LeCunNormal`](@ref)
+"""
+function initialise!(model::Model)
+    for layer in model.layers
+        initialise_layer!(layer)
+    end
+    return model
+end
+
 # API
 export Static, Dense, Conv, MaxPool, Flatten, chain, sigmoid, relu, tanh_fast, parameters, gradients
 export MSELoss, LogitCrossEntropyLoss
@@ -17,7 +46,8 @@ export forward!, preallocate, preallocate_grads, set_inputs!, get_outputs, backp
 export truncate
 export gpu
 export AdamOptimiser, SGDOptimiser, RMSPropOptimiser, reset!, update!
-
+export Initialiser, GlorotUniform, GlorotNormal, HeUniform, HeNormal, LeCunNormal, Zeros, initialize!
+export initialise!
 
 # Backwards compatibility for older Julia versions
 function __init__()

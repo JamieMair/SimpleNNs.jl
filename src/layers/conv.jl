@@ -1,4 +1,4 @@
-Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Infer,NTuple{<:Any, Int}}, K<:Union{Infer,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}} <: AbstractLayer
+Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Infer,NTuple{<:Any, Int}}, K<:Union{Infer,Int}, T<:Function, B, KD, KS<:NTuple{KD, Int}, I<:Initialiser} <: AbstractLayer
     out_channels::Int
     use_bias::Val{B} = Val(true)
     parameter_type::Val{DT} = Val(Float32)
@@ -6,6 +6,7 @@ Base.@kwdef struct Conv{DT<:Real, KSIZE<:Union{Infer,NTuple{<:Any, Int}}, K<:Uni
     in_channels::K = Infer()
     kernel_size::KS
     activation_fn::T = identity
+    init::I = GlorotNormal()
 end
 
 """
@@ -20,6 +21,7 @@ This can automatically infer the number of input channels based on the preceedin
 - `use_bias` (default: `Val(true)`) - Whether or not to add a bias vector to the output. Wrapped in a `Val` for optimisation.
 - `activation_fn` (default: `identity`) - A custom activation function. Note that not all functions are supported by backpropagation.
 - `parameter_type` (default: `Val(Float32)`) - The datatype to use for the parameters, wrapped in a `Val` type.
+- `init` (default: `GlorotNormal()`) - Weight initialisation scheme. See [`Initialiser`](@ref) for available options.
 """
 Conv(kernel_size::NTuple{N, Int}, out_channels::Int; kwargs...) where {N} = Conv(;kernel_size, out_channels, kwargs...)
 datatype(::Conv{DT}) where {DT} = DT
@@ -38,7 +40,7 @@ function reconstruct_layer(layer::Conv, previous_layer_size::NTuple{D, Int}, pre
         end
         in_channels = previous_layer_size[spatial_channels+1]
 
-        return Conv(layer.out_channels, layer.use_bias, layer.parameter_type, previous_layer_size, in_channels, layer.kernel_size, layer.activation_fn)
+        return Conv(layer.out_channels, layer.use_bias, layer.parameter_type, previous_layer_size, in_channels, layer.kernel_size, layer.activation_fn, layer.init)
     else
         return layer
     end
