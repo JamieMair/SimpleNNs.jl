@@ -21,6 +21,7 @@ makedocs(;
             "MNIST" => "mnist.md"
         ],
         "Advanced Topics" => Any[
+            "Parameter Initialisation" => "initialisation.md",
             "GPU Usage" => "gpu_usage.md",
             "Advanced Usage" => "advanced_usage.md"
         ],
