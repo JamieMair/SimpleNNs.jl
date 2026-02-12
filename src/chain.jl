@@ -209,7 +209,7 @@ function add_loss(model::Model, loss_layer::AbstractTargetsLayer)
     # Copy the existing parameters to the new model
     # The new model should have the same parameters (loss layers have no parameters)
     if length(new_model.parameters) == length(model.parameters)
-        new_model.parameters .= model.parameters
+        copyto!(new_model.parameters, model.parameters)
     else
         @error "Parameter mismatch when adding loss layer. Expected $(length(model.parameters)), got $(length(new_model.parameters))"
     end
@@ -264,7 +264,7 @@ function remove_loss(model::Model)
     
     # Copy the existing parameters to the new model
     if length(new_model.parameters) == length(model.parameters)
-        new_model.parameters .= model.parameters
+        copyto!(new_model.parameters, model.parameters)
     else
         @error "Parameter mismatch when removing loss layer. Expected $(length(model.parameters)), got $(length(new_model.parameters))"
     end
