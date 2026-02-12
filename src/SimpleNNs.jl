@@ -48,6 +48,8 @@ export gpu
 export AdamOptimiser, SGDOptimiser, RMSPropOptimiser, reset!, update!
 export Initialiser, GlorotUniform, GlorotNormal, HeUniform, HeNormal, LeCunNormal, Zeros, initialize!
 export initialise!
+export has_loss, add_loss, remove_loss, get_predictions
+export BatchCrossEntropyLoss
 
 # Backwards compatibility for older Julia versions
 function __init__()
