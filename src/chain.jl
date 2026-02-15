@@ -10,6 +10,60 @@ Modifying this array will change the parameters of the model.
 parameters(model::Model) = model.parameters
 
 """
+    Base.deepcopy(model::Model)
+
+Create a deep copy of the model with its own independent parameter array.
+
+This function creates a new model with:
+- A new parameter array (using `similar` and `copyto!`)
+- New parameter views for each layer pointing to the new array
+- The same layer structure and configuration
+
+The copied model is completely independent from the original - modifying parameters
+in one will not affect the other.
+
+# Arguments
+- `model::Model`: The model to copy
+
+# Returns
+A new `Model` with copied parameters and structure.
+
+# Examples
+```julia
+model = chain(Static(10), Dense(5))
+model_copy = deepcopy(model)
+
+# Modify copy - original unchanged
+parameters(model_copy) .= 0.0
+```
+
+See also [`parameters`](@ref), [`chain`](@ref).
+"""
+function Base.deepcopy(model::Model)
+    parameter_offsets = cumsum(num_parameters.(model.layers))
+    layer_indices = [parameter_indices(layer, offset-num_parameters(layer)) for (layer, offset) in Iterators.zip(model.layers, parameter_offsets)]
+    
+    # Create a new parameter array and copy data
+    copied_parameters = similar(model.parameters)
+    copyto!(copied_parameters, model.parameters)
+    
+    copied_parameters_views = _map_views(layer_indices, copied_parameters)
+    
+    function _inner_or_same(l)
+        if typeof(l) <: AbstractParameterisedLayer
+            return _inner_layer(l)
+        else
+            return l
+        end
+    end
+    
+    unwrapped_layers = Tuple(_inner_or_same(l) for l in model.layers)
+    model_layers = Tuple((num_parameters(l) > 0 ? ParameterisedLayer(l, v) : l) for (l,v) in zip(unwrapped_layers, copied_parameters_views))
+    
+    return Model(copied_parameters, model_layers)
+end
+
+"""
     chain(layers...)
 
 Combines the given layer definitions into a single model and propagates the layer sizes through the network.
