@@ -1,7 +1,7 @@
 name = "SimpleNNs"
 uuid = "0f07a834-652b-47c2-8205-950502167029"
 authors = ["Jamie Mair <JamieMair@users.noreply.github.com> and contributors"]
-version = "0.2.6"
+version = "0.2.7"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
