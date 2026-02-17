@@ -20,4 +20,8 @@ activation_gradient_fn(::typeof(tanh)) = tanh_derivative
 activation_gradient_fn(::typeof(tanh_fast)) = tanh_derivative
 activation_gradient_fn(::typeof(sigmoid)) = sigmoid_derivative
 activation_gradient_fn(::typeof(relu)) = relu_derivative
-activation_gradient_fn(::Function) = unimplemented()
+function activation_gradient_fn(f::Function) 
+    fn_type = typeof(f)
+    println("Tried to get the gradient function for funnction $fn_type, but it is not implemented.")
+    unimplemented()    
+end

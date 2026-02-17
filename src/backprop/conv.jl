@@ -1,7 +1,7 @@
 function backprop!(partials_buffer, gradient_buffer, inputs, outputs, layer::Conv)
     # Apply activation backprop
     if typeof(layer.activation_fn) !== typeof(identity)
-        activation_derivative = activation_gradient_fn(layer.activation_fn)
+        activation_derivative = activation_gradient_fn(layer)
         partials_buffer .*= activation_derivative.(outputs)
     end
 
