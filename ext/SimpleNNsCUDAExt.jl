@@ -119,10 +119,13 @@ function SimpleNNs.forward!(output::CuArray, layer::SimpleNNs.Conv, parameters, 
         w, h, _, n = size(output)
         x_threads = min(32, w)
         y_threads = min(32, h)
-        z_threads = min(1024 ÷ x_threads ÷ y_threads, n)
+        max_threads_per_block = CUDA.attribute(CUDA.device(), CUDA.DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK)
+        z_threads = min(max_threads_per_block ÷ x_threads ÷ y_threads, n)
         num_threads = (x_threads, y_threads, z_threads)
+
         num_blocks = (cld(w, x_threads), cld(h, y_threads), cld(n, z_threads))
         activation = layer.activation_fn
+
 
         if SimpleNNs.has_bias(layer)
             biases = SimpleNNs.kernel_biases(layer, parameters)
